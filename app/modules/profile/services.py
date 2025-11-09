@@ -12,3 +12,10 @@ class UserProfileService(BaseService):
             return updated_instance, None
 
         return None, form.errors
+
+    def get_user_profile(self, user_id):
+        from app.modules.auth.models import User
+        user = User.query.get(user_id)
+        if user:
+            return user.profile
+        return None
