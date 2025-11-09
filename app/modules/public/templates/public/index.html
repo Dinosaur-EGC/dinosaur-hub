@@ -56,6 +56,12 @@
 
 
                         </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <p class="text-secondary"><strong>Uploaded by:</strong> <a href="{{ url_for('public.view_user_profile', user_id=dataset.user.id) }}" title="View {{ dataset.user.profile.name }}'s profile">{{ dataset.user.profile.surname }}, {{ dataset.user.profile.name }}</a></p>
+                            </div>
+                        </div>
 
                         <div class="row mb-2">
 
