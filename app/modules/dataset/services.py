@@ -139,6 +139,10 @@ class DataSetService(BaseService):
     def get_uvlhub_doi(self, dataset: DataSet) -> str:
         domain = os.getenv("DOMAIN", "localhost")
         return f"http://{domain}/doi/{dataset.ds_meta_data.dataset_doi}"
+    
+    # 69 - Profile view
+    def get_datasets_by_user(self, user_id):
+        return self.repository.filter_by(user_id=user_id).all()
 
 
 class AuthorService(BaseService):
