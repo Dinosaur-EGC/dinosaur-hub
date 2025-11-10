@@ -1,0 +1,33 @@
+{% extends "base_template.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Configurar Autenticación de Dos Factores (2FA)</h2>
+    <hr>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Paso 1: Escanea el código QR</h4>
+            <p>Usa tu aplicación de autenticación (como Google Authenticator o Authy) para escanear este código.</p>
+            <div class="text-center">
+                <img src="{{ qr_data_uri }}" alt="Código QR para 2FA" style="width: 200px; height: 200px;">
+            </div>
+            <p class="text-muted"><small>Si no puedes escanearlo, introduce este código manualmente: <strong>{{ secret }}</strong></small></p>
+        </div>
+        <div class="col-md-6">
+            <h4>Paso 2: Verifica el código</h4>
+            <p>Introduce el código de 6 dígitos que genera tu aplicación para confirmar.</p>
+            <form method="POST" action="">
+                {{ form.hidden_tag() }}
+                <div class="form-group mb-3">
+                    {{ form.verification_token.label(class="form-label") }}
+                    {{ form.verification_token(class="form-control", autocomplete="off", placeholder="Ej: 123456") }}
+                    {% for error in form.verification_token.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">Activar 2FA</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

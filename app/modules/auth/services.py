@@ -68,6 +68,12 @@ class AuthenticationService(BaseService):
         if current_user.is_authenticated:
             return current_user
         return None
+    
+    def get_user_by_email(self, email: str) -> User | None:
+        return self.repository.get_by_email(email)
+
+    def get_user_by_id(self, user_id: int) -> User | None:
+        return self.repository.get_by_id(user_id)
 
     def get_authenticated_user_profile(self) -> UserProfile | None:
         if current_user.is_authenticated:

@@ -1,8 +1,8 @@
-from flask import redirect, render_template, request, url_for
+from flask import redirect, render_template, request, url_for, session, flash
 from flask_login import current_user, login_user, logout_user
 
 from app.modules.auth import auth_bp
-from app.modules.auth.forms import LoginForm, SignupForm
+from app.modules.auth.forms import LoginForm, SignupForm, Verify2FAForm
 from app.modules.auth.services import AuthenticationService
 from app.modules.profile.services import UserProfileService
 
@@ -40,12 +40,52 @@ def login():
 
     form = LoginForm()
     if request.method == "POST" and form.validate_on_submit():
-        if authentication_service.login(form.email.data, form.password.data):
+        # Buscamos al usuario por email sin loguearlo todavía.
+        user = authentication_service.get_user_by_email(form.email.data)
+
+        if user and user.check_password(form.password.data):
+            # Comprobamos si el usuario tiene 2FA activado
+            if user.totp_secret:
+                # Guardamos temporalmente el ID del usuario y su preferencia de 'recordarme' en la sesión
+                session['2fa_user_id'] = user.id
+                session['2fa_remember'] = form.remember_me.data
+                return redirect(url_for('auth.verify_2fa'))
+
+            # Si NO tiene 2FA, procedemos con el login normal
+            login_user(user, remember=form.remember_me.data)
             return redirect(url_for("public.index"))
 
-        return render_template("auth/login_form.html", form=form, error="Invalid credentials")
+        return render_template("auth/login_form.html", form=form, error="Credenciales inválidas")
 
     return render_template("auth/login_form.html", form=form)
+
+
+@auth_bp.route("/login/verify-2fa", methods=["GET", "POST"])
+def verify_2fa():
+    # Si intentan acceder aquí sin haber pasado por el login primero, los echamos
+    if '2fa_user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    form = Verify2FAForm()
+    if form.validate_on_submit():
+        # Recuperamos el usuario usando el ID guardado en sesión
+        user = authentication_service.get_user_by_id(session['2fa_user_id'])
+
+        # Verificamos el token TOTP
+        if user and user.verify_totp(form.token.data):
+            # Completamos el proceso de login.
+            remember_me = session.get('2fa_remember', False)
+
+            # Limpiamos las variables temporales de la sesión
+            session.pop('2fa_user_id', None)
+            session.pop('2fa_remember', None)
+
+            login_user(user, remember=remember_me)
+            return redirect(url_for('public.index'))
+        else:
+            flash("Código de autenticación inválido. Inténtalo de nuevo.", "danger")
+
+    return render_template("auth/verify_2fa_form.html", form=form)
 
 
 @auth_bp.route("/logout")

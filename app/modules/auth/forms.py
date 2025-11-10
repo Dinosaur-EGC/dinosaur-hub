@@ -16,3 +16,11 @@ class LoginForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired()])
     remember_me = BooleanField("Remember me")
     submit = SubmitField("Login")
+
+class Enable2FAForm(FlaskForm):
+    verification_token = StringField("Verification Token", validators=[DataRequired(), Length(min=6, max=6)])
+    submit = SubmitField("Enable 2FA")
+
+class Verify2FAForm(FlaskForm):
+    token = StringField("2FA Token", validators=[DataRequired(), Length(min=6, max=6)])
+    submit = SubmitField("Verify")
