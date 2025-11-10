@@ -4,7 +4,7 @@ from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db
-
+import pyotp
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -12,6 +12,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(256), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    totp_secret = db.Column(db.String(32), nullable=True)
 
     data_sets = db.relationship("DataSet", backref="user", lazy=True)
     profile = db.relationship("UserProfile", backref="user", uselist=False)
@@ -29,6 +30,15 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
+    
+    def get_totp_uri(self):
+        return pyotp.totp.TOTP(self.totp_secret).provisioning_uri(
+            name=self.email,
+            issuer_name="Dinosaur Hub"
+        )
+
+    def verify_totp(self, token):
+        return pyotp.TOTP(self.totp_secret).verify(token)
 
     def temp_folder(self) -> str:
         from app.modules.auth.services import AuthenticationService

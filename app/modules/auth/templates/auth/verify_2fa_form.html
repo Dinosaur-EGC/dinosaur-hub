@@ -1,0 +1,54 @@
+{% extends "base_template.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="text-center mb-4">Verificación en dos pasos</h3>
+                    <p class="text-muted text-center mb-4">
+                        Introduce el código de 6 dígitos de tu aplicación de autenticación.
+                    </p>
+
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+
+                        {% if form.token.errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.token.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {# Muestra mensajes flash (ej. si el token fue incorrecto) #}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            {{ form.token.label(class="form-label visually-hidden") }}
+                            {{ form.token(class="form-control form-control-lg text-center", placeholder="000000", autocomplete="one-time-code", autofocus=true, maxlength="6") }}
+                        </div>
+
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary btn-lg", value="Verificar") }}
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none">
+                            &larr; Volver al inicio de sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
