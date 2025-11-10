@@ -1,5 +1,5 @@
 <div style="text-align: center;">
-  <img src="/home/curro/Escritorio/egc/dinosaur-hub/app/static/img/logos/dino-logo1.png" alt="Logo">
+  <img src="app/static/img/logos/dino-logo1.png" alt="Logo">
 </div>
 
 
