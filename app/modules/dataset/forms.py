@@ -1,6 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, SelectField, StringField, SubmitField, TextAreaField
+from flask_wtf.file import FileField, FileAllowed
+from wtforms import FieldList, FormField, SelectField, StringField, SubmitField, TextAreaField, RadioField
 from wtforms.validators import URL, DataRequired, Optional
+import re
 
 from app.modules.dataset.models import PublicationType
 
@@ -31,7 +33,7 @@ class FeatureModelForm(FlaskForm):
         choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
         validators=[Optional()],
     )
-    publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
+    publication_doi = StringField("Publication DOI", validators=[Optional()])
     tags = StringField("Tags (separated by commas)")
     version = StringField("UVL Version")
     authors = FieldList(FormField(AuthorForm))
@@ -62,13 +64,73 @@ class DataSetForm(FlaskForm):
         choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
         validators=[DataRequired()],
     )
-    publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
-    dataset_doi = StringField("Dataset DOI", validators=[Optional(), URL()])
+    publication_doi = StringField("Publication DOI", validators=[Optional()])
+    dataset_doi = StringField("Dataset DOI", validators=[Optional()])
     tags = StringField("Tags (separated by commas)")
     authors = FieldList(FormField(AuthorForm))
-    feature_models = FieldList(FormField(FeatureModelForm), min_entries=1)
+
+    import_method = RadioField(
+        'Model Source',
+        choices=[
+            ('manual', 'Manual File Upload'),
+            ('zip', 'Upload ZIP Archive'),
+            ('github', 'Import from GitHub')
+        ],
+        default='manual',
+        validators=[DataRequired()]
+    )
+
+    # --- Campo para subir el ZIP ---
+    zip_file = FileField(
+        'ZIP Archive',
+        validators=[
+            Optional(),
+            FileAllowed(['zip'], 'Only .zip files are allowed!')
+        ]
+    )
+    
+    # --- Campo para la URL de GitHub ---
+    github_url = StringField(
+        'GitHub Repository URL',
+        validators=[
+            Optional(),
+            URL()
+        ],
+        render_kw={"placeholder": "https://github.com/user/repo"}
+    )
+
+    # --- Lista de Modelos Manuales ---
+    feature_models = FieldList(FormField(FeatureModelForm), min_entries=0)
 
     submit = SubmitField("Submit")
+
+    # --- Validación personalizada ---
+    def validate(self, extra_validators=None):
+        if not super(DataSetForm, self).validate(extra_validators):
+            return False
+
+        is_valid = True
+        method = self.import_method.data
+
+        if method == 'manual':
+            if not self.feature_models.data:
+                self.feature_models.errors.append('At least one feature model is required for manual upload.')
+                is_valid = False
+        
+        elif method == 'zip':
+            if not self.zip_file.data:
+                self.zip_file.errors.append('A ZIP file is required for this import method.')
+                is_valid = False
+
+        elif method == 'github':
+            if not self.github_url.data:
+                self.github_url.errors.append('A GitHub URL is required for this import method.')
+                is_valid = False
+            elif not re.match(r'^https://github\.com/[^/]+/[^/]+/?$', self.github_url.data):
+                self.github_url.errors.append('Invalid GitHub URL. Must be like https://github.com/user/repo')
+                is_valid = False
+        
+        return is_valid
 
     def get_dsmetadata(self):
 

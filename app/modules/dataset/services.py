@@ -5,6 +5,11 @@ import shutil
 import uuid
 from typing import Optional
 
+import zipfile
+import io
+import requests
+from urllib.parse import urlparse
+
 from flask import request
 
 from app.modules.auth.services import AuthenticationService
@@ -52,22 +57,24 @@ class DataSetService(BaseService):
     def move_feature_models(self, dataset: DataSet):
         current_user = AuthenticationService().get_authenticated_user()
         source_dir = current_user.temp_folder()
-
         working_dir = os.getenv("WORKING_DIR", "")
         dest_dir = os.path.join(working_dir, "uploads", f"user_{current_user.id}", f"dataset_{dataset.id}")
-
         os.makedirs(dest_dir, exist_ok=True)
-
         for feature_model in dataset.feature_models:
             uvl_filename = feature_model.fm_meta_data.uvl_filename
-            shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+            source_file = os.path.join(source_dir, uvl_filename)
+            if os.path.exists(source_file):
+                shutil.move(source_file, dest_dir)
+            else:
+                logger.warning(f"File {uvl_filename} not found in temp folder for moving.")
+
 
     def get_synchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_synchronized(current_user_id)
 
     def get_unsynchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_unsynchronized(current_user_id)
-
+    
     def get_unsynchronized_dataset(self, current_user_id: int, dataset_id: int) -> DataSet:
         return self.repository.get_unsynchronized_dataset(current_user_id, dataset_id)
 
@@ -133,6 +140,200 @@ class DataSetService(BaseService):
             raise exc
         return dataset
 
+    def _create_dataset_shell(self, form, current_user) -> DataSet:
+        """
+        Crea la entidad DataSet y sus metadatos/autores principales.
+        NO hace commit.
+        """
+        logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
+        dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
+        
+        main_author = {
+            "name": f"{current_user.profile.surname}, {current_user.profile.name}",
+            "affiliation": current_user.profile.affiliation,
+            "orcid": current_user.profile.orcid,
+        }
+        for author_data in [main_author] + form.get_authors():
+            author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
+            dsmetadata.authors.append(author)
+
+        dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
+        return dataset
+
+    def _add_feature_model_from_file(self, dataset, uvl_filename, current_user, fm_metadata_form=None):
+        """
+        Añade un FeatureModel a un DataSet basándose en un archivo en temp_folder.
+        Si 'fm_metadata_form' se proporciona, se usa para los metadatos.
+        Si es None, se crean metadatos mínimos.
+        NO hace commit.
+        """
+
+        if fm_metadata_form:
+            fmmetadata_data = fm_metadata_form.get_fmmetadata()
+            authors_data = fm_metadata_form.get_authors()
+        else:
+            fmmetadata_data = {
+                "uvl_filename": uvl_filename,
+                "title": uvl_filename,
+                "description": "",
+                "publication_type": "NONE",
+                "publication_doi": "",
+                "tags": "",
+                "uvl_version": "",
+            }
+            authors_data = []
+
+        fmmetadata = self.fmmetadata_repository.create(commit=False, **fmmetadata_data)
+        for author_data in authors_data:
+            author = self.author_repository.create(commit=False, fm_meta_data_id=fmmetadata.id, **author_data)
+            fmmetadata.authors.append(author)
+
+        fm = self.feature_model_repository.create(
+            commit=False, data_set_id=dataset.id, fm_meta_data_id=fmmetadata.id
+        )
+
+        file_path = os.path.join(current_user.temp_folder(), uvl_filename)
+        
+        if not os.path.exists(file_path):
+            logger.error(f"File {uvl_filename} not found in temp folder {current_user.temp_folder()} during _add_feature_model.")
+            raise FileNotFoundError(f"File {uvl_filename} was not found in the temporary directory.")
+
+        checksum, size = calculate_checksum_and_size(file_path)
+
+        file = self.hubfilerepository.create(
+            commit=False, name=uvl_filename, checksum=checksum, size=size, feature_model_id=fm.id
+        )
+        fm.files.append(file)
+        logger.info(f"Added FeatureModel '{uvl_filename}' to dataset {dataset.id}")
+
+    def _process_zip_file(self, dataset, zip_file_obj, current_user):
+        """
+        Procesa un objeto 'file-like' de ZIP.
+        Extrae los .uvl al temp_folder y llama a _add_feature_model_from_file.
+        NO hace commit.
+        """
+        temp_folder = current_user.temp_folder()
+        os.makedirs(temp_folder, exist_ok=True)
+        
+        zip_file_obj.seek(0)
+        if not zipfile.is_zipfile(zip_file_obj):
+            raise ValueError("File is not a valid ZIP archive.")
+            
+        model_count = 0
+        with zipfile.ZipFile(zip_file_obj, 'r') as zip_ref:
+            for file_path in zip_ref.namelist():
+                if file_path.endswith('.uvl') and not file_path.startswith('__MACOSX'):
+                    filename = os.path.basename(file_path)
+
+                    if not filename:
+                        continue
+
+                    try:
+                        uvl_content = zip_ref.read(file_path)
+                        temp_file_path = os.path.join(temp_folder, filename)
+                        
+                        with open(temp_file_path, 'wb') as f:
+                            f.write(uvl_content)
+
+                        self._add_feature_model_from_file(dataset, filename, current_user, fm_metadata_form=None)
+                        model_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to process file '{filename}' from ZIP: {e}")
+        
+        if model_count == 0:
+            logger.warning(f"No .uvl files found in the provided ZIP archive for dataset {dataset.id}.")
+
+
+    def create_from_form(self, form, current_user) -> DataSet:
+        """
+        Procesa la subida MANUAL de modelos.
+        """
+        try:
+            dataset = self._create_dataset_shell(form, current_user)
+            
+            for feature_model_form in form.feature_models:
+                uvl_filename = feature_model_form.uvl_filename.data
+                self._add_feature_model_from_file(
+                    dataset, uvl_filename, current_user, fm_metadata_form=feature_model_form
+                )
+            
+            self.repository.session.commit()
+            
+        except Exception as exc:
+            logger.exception(f"Exception creating dataset from form...: {exc}")
+            self.repository.session.rollback()
+            raise exc
+        return dataset
+
+    def create_from_zip(self, form, current_user) -> DataSet:
+        """
+        Procesa la subida de modelos desde un archivo ZIP.
+        """
+        try:
+            dataset = self._create_dataset_shell(form, current_user)
+            
+            zip_file = form.zip_file.data
+            self._process_zip_file(dataset, zip_file, current_user)
+            
+            self.repository.session.commit()
+            
+        except Exception as exc:
+            logger.exception(f"Exception creating dataset from ZIP...: {exc}")
+            self.repository.session.rollback()
+            raise exc
+        return dataset
+
+    def create_from_github(self, form, current_user) -> DataSet:
+        """
+        Procesa la importación de modelos desde un repositorio de GitHub.
+        """
+        try:
+            dataset = self._create_dataset_shell(form, current_user)
+            
+            repo_url = form.github_url.data
+            
+            parsed_url = urlparse(repo_url)
+            path_parts = parsed_url.path.strip('/').split('/')
+            
+            if parsed_url.hostname != 'github.com' or len(path_parts) < 2:
+                raise ValueError("Invalid GitHub URL.")
+                
+            user_name, repo_name = path_parts[0], path_parts[1]
+            
+            api_url = f"https://api.github.com/repos/{user_name}/{repo_name}"
+            headers = {'Accept': 'application/vnd.github.v3+json'}
+            try:
+                repo_info = requests.get(api_url, headers=headers)
+                repo_info.raise_for_status() 
+                default_branch = repo_info.json().get('default_branch', 'main')
+            except requests.RequestException as e:
+                logger.warning(f"Could not fetch repo info from GitHub API: {e}. Defaulting to 'main' branch.")
+                default_branch = 'main'
+                
+            zip_url = f"https://github.com/{user_name}/{repo_name}/archive/refs/heads/{default_branch}.zip"
+            logger.info(f"Downloading repo from {zip_url}")
+
+            response = requests.get(zip_url, stream=True)
+            response.raise_for_status()
+            
+            zip_in_memory = io.BytesIO(response.content)
+            
+            self._process_zip_file(dataset, zip_in_memory, current_user)
+            
+            self.repository.session.commit()
+            
+        except requests.RequestException as e:
+            logger.exception(f"Exception downloading from GitHub: {e}")
+            self.repository.session.rollback()
+            raise ValueError(f"Could not download repository from GitHub: {e}")
+        except Exception as exc:
+            logger.exception(f"Exception creating dataset from GitHub...: {exc}")
+            self.repository.session.rollback()
+            raise exc
+            
+        return dataset
+    
     def update_dsmetadata(self, id, **kwargs):
         return self.dsmetadata_repository.update(id, **kwargs)
 

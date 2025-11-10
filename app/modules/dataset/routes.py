@@ -52,18 +52,37 @@ def create_dataset():
         dataset = None
 
         if not form.validate_on_submit():
+            logger.warning(f"Dataset form validation failed: {form.errors}")
             return jsonify({"message": form.errors}), 400
 
         try:
-            logger.info("Creating dataset...")
-            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            import_method = form.import_method.data
+            logger.info(f"Creating dataset using '{import_method}' method...")
+
+            if import_method == 'manual':
+                dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+                dataset_service.move_feature_models(dataset)
+            
+            elif import_method == 'zip':
+                dataset = dataset_service.create_from_zip(form=form, current_user=current_user)
+
+            elif import_method == 'github':
+                dataset = dataset_service.create_from_github(form=form, current_user=current_user)
+                
+            else:
+                raise ValueError(f"Invalid import method: {import_method}")
+
             logger.info(f"Created dataset: {dataset}")
             dataset_service.move_feature_models(dataset)
-        except Exception as exc:
-            logger.exception(f"Exception while create dataset data in local {exc}")
-            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
 
-        # send dataset as deposition to Zenodo
+        except Exception as exc:
+            logger.exception(f"Exception while creating local dataset data: {exc}")
+            return jsonify({"message": f"Exception while creating local dataset: {str(exc)}"}), 400
+        
+        if not dataset:
+            logger.error(f"Dataset creation finished but 'dataset' object is None (Import method: {import_method})")
+            return jsonify({"message": "Dataset could not be created. Check logs for details."}), 500
+
         data = {}
         try:
             zenodo_response_json = zenodo_service.create_new_deposition(dataset)
@@ -77,11 +96,9 @@ def create_dataset():
         if data.get("conceptrecid"):
             deposition_id = data.get("id")
 
-            # update dataset with deposition id in Zenodo
             dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
 
             try:
-                # iterate for each feature model (one feature model = one request to Zenodo)
                 for feature_model in dataset.feature_models:
                     zenodo_service.upload_file(dataset, deposition_id, feature_model)
 
