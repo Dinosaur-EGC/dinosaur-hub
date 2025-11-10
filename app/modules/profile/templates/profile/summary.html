@@ -22,6 +22,32 @@
                 <p class="card-text h5"><i class="fa fa-id-card"></i> <strong>Orcid:</strong> {{user_profile.orcid}}</p>
                 <p class="card-text h5"><i class="fa fa-envelope"></i> <strong>Email:</strong> {{user.email}}</p>
                 <p class="card-text h5"><i class="fa fa-database"></i> <strong>Uploaded datasets:</strong> {{ total_datasets }} datasets</p>
+                <hr class="my-4">
+                <h5 class="mb-3"><i class="fa fa-lock"></i> Seguridad</h5>
+                
+                {% if current_user.totp_secret %}
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="fa fa-check-circle me-2"></i>
+                        <div>
+                            Autenticación de dos factores (2FA) está <strong>activada</strong>.
+                        </div>
+                    </div>
+                    <form action="{{ url_for('profile.disable_2fa') }}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres desactivar la autenticación en dos pasos? Tu cuenta será menos segura.');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            Desactivar 2FA
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        <div>
+                            No tienes activada la autenticación de dos factores.
+                        </div>
+                    </div>
+                    <a href="{{ url_for('profile.enable_2fa') }}" class="btn btn-primary">
+                        Configurar 2FA
+                    </a>
+                {% endif %}
             </div>
             
         </div>
