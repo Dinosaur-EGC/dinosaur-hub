@@ -269,9 +269,17 @@
                             </div>
                             <div class="col-12 text-end" >
 
+                                <button onclick="addToCart('{{ file.id }}')" 
+                                        class="btn btn-success btn-sm" 
+                                        id="cart_button_{{ file.id }}"
+                                        style="border-radius: 5px; margin-right: 10px;">
+                                    <i data-feather="shopping-cart"></i> Add to Cart
+                                </button>
                                 <button onclick="viewFile('{{ file.id }}')" class="btn btn-outline-secondary btn-sm" style="border-radius: 5px;">
                                     <i data-feather="eye"></i> View
                                 </button>
+
+                                
 
                                 <div class="btn-group" role="group">
                                     <button id="btnGroupDrop{{ file.id }}" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style=" border-radius: 5px;">
@@ -484,6 +492,50 @@
         }
     }
     */
+
+    // ... Después de la función checkUVL(file_id)
+// ... y antes de la función copyToClipboard()
+
+    function addToCart(hubfileId) {
+        const button = document.getElementById(`cart_button_${hubfileId}`);
+        
+        // Deshabilitar el botón y mostrar un spinner mientras se procesa
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        // Llamada AJAX a la ruta POST /cart/add/<id>
+        fetch(`/cart/add/${fileId}`, { method: 'POST' })
+        .then(response => {
+            // La respuesta del servidor debe ser un JSON
+            if (response.ok) {
+                // Éxito (status 200)
+                button.className = 'btn btn-warning btn-sm';
+                button.innerHTML = '<i data-feather="check"></i> Added';
+                
+            } else if (response.status === 409) {
+                // Ya está en el carrito (status 409, manejado por el servicio)
+                button.className = 'btn btn-warning btn-sm';
+                button.innerHTML = '<i data-feather="check"></i> Already Added';
+            } else {
+                // Error general
+                button.className = 'btn btn-danger btn-sm';
+                button.innerHTML = '<i data-feather="x-circle"></i> Error';
+                console.error(`Error adding to cart: Status ${response.status}`);
+            }
+            button.disabled = false;
+            // Reemplazar iconos si Feather está definido
+            if (typeof feather !== 'undefined') {
+                feather.replace(); 
+            }
+        })
+        .catch(error => {
+            console.error('Network Error adding to cart:', error);
+            button.className = 'btn btn-danger btn-sm';
+            button.innerHTML = '<i data-feather="x-circle"></i> Error';
+            button.disabled = false;
+        });
+    }
+
     function copyToClipboard() {
         const text = document.getElementById('fileContent').textContent;
         navigator.clipboard.writeText(text).then(() => {
