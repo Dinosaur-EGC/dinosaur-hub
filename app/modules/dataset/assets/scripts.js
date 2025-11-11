@@ -142,98 +142,111 @@ window.onload = function () {
         clean_upload_errors();
         show_loading();
 
-        // check title and description
-        let check = check_title_and_description();
+        if (!check_title_and_description()) {
+            hide_loading();
+            return;
+        }
 
-        if (check) {
-            // process data form
-            const formData = {};
+        const formUploadData = new FormData();
 
-            ["basic_info_form", "uploaded_models_form"].forEach((formId) => {
-                const form = document.getElementById(formId);
-                const inputs = form.querySelectorAll('input, select, textarea');
-                inputs.forEach(input => {
-                    if (input.name) {
-                        formData[input.name] = formData[input.name] || [];
-                        formData[input.name].push(input.value);
-                    }
-                });
-            });
+        const csrfToken = document.getElementById('csrf_token').value;
+        formUploadData.append('csrf_token', csrfToken);
 
-            let formDataJson = JSON.stringify(formData);
-            console.log(formDataJson);
+        const basicForm = document.getElementById("basic_info_form");
+        const basicInputs = basicForm.querySelectorAll('input, select, textarea');
+        
+        let checked_orcid = true;
+        let checked_name = true;
+        const tempAuthorData = {};
 
-            const csrfToken = document.getElementById('csrf_token').value;
-            const formUploadData = new FormData();
-            formUploadData.append('csrf_token', csrfToken);
+        basicInputs.forEach(input => {
+            if (!input.name || input.name === 'csrf_token') return;
 
-            for (let key in formData) {
-                if (formData.hasOwnProperty(key)) {
-                    formUploadData.set(key, formData[key]);
+            if (input.type === 'radio') {
+                if (input.checked) {
+                    formUploadData.append(input.name, input.value);
                 }
-            }
+            } else if (input.type === 'file') {
+                if (input.name === 'zip_file' && input.files.length > 0) {
+                    formUploadData.append(input.name, input.files[0]);
+                }
+            } else if (input.type === 'checkbox') {
+                 formUploadData.append(input.name, input.checked);
+            } else {
+                formUploadData.append(input.name, input.value);
 
-            let checked_orcid = true;
-            if (Array.isArray(formData.author_orcid)) {
-                for (let orcid of formData.author_orcid) {
-                    orcid = orcid.trim();
+                if (input.name.endsWith('-orcid')) {
+                    let orcid = input.value.trim();
                     if (orcid !== '' && !isValidOrcid(orcid)) {
-                        hide_loading();
-                        write_upload_error("ORCID value does not conform to valid format: " + orcid);
                         checked_orcid = false;
-                        break;
+                        write_upload_error("ORCID value does not conform to valid format: " + orcid);
                     }
                 }
-            }
-
-
-            let checked_name = true;
-            if (Array.isArray(formData.author_name)) {
-                for (let name of formData.author_name) {
-                    name = name.trim();
-                    if (name === '') {
-                        hide_loading();
-                        write_upload_error("The author's name cannot be empty");
-                        checked_name = false;
-                        break;
-                    }
+                if (input.name.endsWith('-name')) {
+                    const key = input.name.split('-')[1]; 
+                    tempAuthorData[key] = tempAuthorData[key] || {};
+                    tempAuthorData[key].name = input.value.trim();
                 }
             }
+        });
+        
+        for (const key in tempAuthorData) {
+            if (tempAuthorData[key].name === '') {
+                 checked_name = false;
+                 write_upload_error("The author's name cannot be empty");
+                 break;
+            }
+        }
 
+        const importMethod = formUploadData.get('import_method');
+        
+        if (importMethod === 'manual') {
+            const modelsForm = document.getElementById("uploaded_models_form");
+            const modelsInputs = modelsForm.querySelectorAll('input, select, textarea');
 
-            if (checked_orcid && checked_name) {
-                fetch('/dataset/upload', {
-                    method: 'POST',
-                    body: formUploadData
+            modelsInputs.forEach(input => {
+                if (input.name) {
+                    formUploadData.append(input.name, input.value);
+                }
+            });
+        }
+        
+        if (checked_orcid && checked_name) {
+            fetch('/dataset/upload', {
+                method: 'POST',
+                body: formUploadData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Dataset sent successfully');
+                        response.json().then(data => {
+                            console.log(data.message);
+                            window.location.href = "/dataset/list";
+                        });
+                    } else {
+                        response.json().then(data => {
+                            console.error('Error: ' + JSON.stringify(data.message));
+                            hide_loading();
+
+                            if (typeof data.message === 'object') {
+                                for (const [key, value] of Object.entries(data.message)) {
+                                     write_upload_error(`${key}: ${value.join(', ')}`);
+                                }
+                            } else {
+                                 write_upload_error(data.message);
+                            }
+
+                        });
+                    }
                 })
-                    .then(response => {
-                        if (response.ok) {
-                            console.log('Dataset sent successfully');
-                            response.json().then(data => {
-                                console.log(data.message);
-                                window.location.href = "/dataset/list";
-                            });
-                        } else {
-                            response.json().then(data => {
-                                console.error('Error: ' + data.message);
-                                hide_loading();
-
-                                write_upload_error(data.message);
-
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error in POST request:', error);
-                    });
-            }
-
-
+                .catch(error => {
+                    console.error('Error in POST request:', error);
+                    hide_loading();
+                    write_upload_error('A network error occurred. Please try again.');
+                });
         } else {
             hide_loading();
         }
-
-
     });
 };
 
