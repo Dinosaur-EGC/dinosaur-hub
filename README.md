@@ -1,11 +1,11 @@
 <div style="text-align: center;">
-  <img src="https://www.uvlhub.io/static/img/logos/logo-light.svg" alt="Logo">
+  <img src="app/static/img/logos/dino-logo1.png" alt="Logo">
 </div>
 
-# uvlhub.io
 
-Repository of feature models in UVL format integrated with Zenodo and flamapy following Open Science principles - Developed by DiversoLab
+# dinosaur-hub
+Repositorio oficial del proyecto de prácticas de la asignatura Evolución y Gestión de la configuración (2025-26)  
+*Fork* del proyecto [uvlhub.io](https://github.com/EGCETSII/uvlhub)
 
-## Official documentation
-
-You can consult the official documentation of the project at [docs.uvlhub.io](https://docs.uvlhub.io/)
+## Documentación oficial
+Puedes consultar la documentación oficial del proyecto base en [docs.uvlhub.io](https://docs.uvlhub.io/)
