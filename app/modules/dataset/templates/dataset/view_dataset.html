@@ -504,7 +504,7 @@
         button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
 
         // Llamada AJAX a la ruta POST /cart/add/<id>
-        fetch(`/cart/add/${fileId}`, { method: 'POST' })
+        fetch(`/cart/add/${hubfileId}`, { method: 'POST' })
         .then(response => {
             // La respuesta del servidor debe ser un JSON
             if (response.ok) {
