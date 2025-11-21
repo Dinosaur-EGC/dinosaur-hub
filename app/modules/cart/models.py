@@ -5,7 +5,7 @@ class ShoppingCartItem(db.Model):
 
     id=db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    hubfile_id = db.Column(db.Integer, db.ForeignKey('hubfile.id'), nullable=False)
+    hubfile_id = db.Column(db.Integer, db.ForeignKey('file.id'), nullable=False)
     added_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
