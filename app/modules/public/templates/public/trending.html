@@ -1,0 +1,29 @@
+{% extends "base_template.html" %}
+
+{% block title %}Trending datasets{% endblock %}
+
+{% block content %}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h1 class="h2 mb-0"><b>Trending datasets</b></h1>
+        <div class="d-flex flex-wrap gap-2">
+            <div class="btn-group" role="group" aria-label="Select metric">
+                <button type="button" class="btn btn-outline-primary" data-trending-metric="downloads">Downloads</button>
+                <button type="button" class="btn btn-outline-primary" data-trending-metric="views">Views</button>
+            </div>
+            <div class="btn-group" role="group" aria-label="Select period">
+                <button type="button" class="btn btn-outline-secondary" data-trending-period="week">This week</button>
+                <button type="button" class="btn btn-outline-secondary" data-trending-period="month">This month</button>
+            </div>
+        </div>
+    </div>
+
+    <p id="trending-status" class="text-secondary">Discover the most popular datasets right now.</p>
+
+    <div id="trending-empty-state" class="alert alert-light d-none">No trending datasets found for the selected options.</div>
+
+    <div class="row gy-3" id="trending-list"></div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('public.scripts') }}"></script>
+{% endblock %}
