@@ -44,6 +44,29 @@ nodo_service = FakenodoService() if USE_FAKENODO else ZenodoService()
 doi_mapping_service = DOIMappingService()
 ds_view_record_service = DSViewRecordService()
 
+@dataset_bp.route("/datasets/trending", methods=["GET"])
+def get_trending_datasets():
+    metric = request.args.get("metric", "downloads").lower()
+    period = request.args.get("period", "week").lower()
+    limit = request.args.get("limit", default=10, type=int) or 10
+    if limit <= 0:
+        limit = 10
+
+    try:
+        trending = dataset_service.get_trending(metric=metric, period=period, limit=limit)
+    except ValueError as exc:
+        return jsonify({"message": str(exc)}), 400
+
+    return jsonify(
+        {
+            "metric": metric,
+            "period": period,
+            "results": [
+                {**result, "metric_label": "downloads" if metric == "downloads" else "views"}
+                for result in trending
+            ],
+        }
+    )
 
 @dataset_bp.route("/dataset/upload", methods=["GET", "POST"])
 @login_required
