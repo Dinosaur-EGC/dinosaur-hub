@@ -128,6 +128,50 @@
 
                     <div class="card-body">
 
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h2> <b>Trending datasets</b> </h2>
+                            <a href="{{ url_for('public.trending') }}" class="btn btn-outline-primary btn-sm">
+                                <i data-feather="trending-up" class="center-button-icon"></i>
+                                Trending
+                            </a>
+                        </div>
+
+                        <p class="text-secondary mb-3">Most downloaded datasets this week</p>
+
+                        {% if trending_datasets %}
+                            <ol class="list-unstyled mb-0">
+                                {% for dataset in trending_datasets %}
+                                    <li class="trending-mini-card pb-2">
+                                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                            <div>
+                                                <a href="{{ dataset.doi }}" class="fw-semibold text-decoration-none">{{ dataset.title }}</a>
+                                                {% if dataset.main_author %}
+                                                    <div class="text-secondary small">by {{ dataset.main_author }}</div>
+                                                {% endif %}
+                                                {% if dataset.community %}
+                                                    <div class="text-secondary small">{{ dataset.community }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge bg-primary">{{ dataset.total }} downloads</span>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}
+                            <p class="mb-0 text-secondary">No downloads recorded for this week yet.</p>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+            </div>
+
+                <div class="col-12">
+
+                <div class="card">
+
+                    <div class="card-body">
+
                         <h2> <b>Hub statistics</b> </h2>
                     
                         <h1 class="h2 mb-3">
