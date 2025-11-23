@@ -140,6 +140,28 @@ class DataSetService(BaseService):
             raise exc
         return dataset
 
+    def get_trending(self, metric: str = "downloads", period: str = "week", limit: int = 10):
+            return [
+                self._serialize_trending_result(dataset, metric_total)
+                for dataset, metric_total in self.repository.get_trending(metric, period, limit)
+            ]
+
+        def _serialize_trending_result(self, dataset: DataSet, metric_total: int):
+            main_author = dataset.ds_meta_data.authors[0].name if dataset.ds_meta_data.authors else None
+            community = None
+            if dataset.user and dataset.user.profile and dataset.user.profile.affiliation:
+                community = dataset.user.profile.affiliation
+
+            return {
+                "id": dataset.id,
+                "title": dataset.ds_meta_data.title,
+                "doi": dataset.get_uvlhub_doi(),
+                "main_author": main_author,
+                "community": community,
+                "total": metric_total,
+            }
+
+
     def _create_dataset_shell(self, form, current_user) -> DataSet:
         """
         Crea la entidad DataSet y sus metadatos/autores principales.
