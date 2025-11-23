@@ -45,8 +45,13 @@ def index():
         total_feature_model_downloads=total_feature_model_downloads,
         total_dataset_views=total_dataset_views,
         total_feature_model_views=total_feature_model_views,
+        trending_datasets=dataset_service.get_trending(limit=3),
     )
 
+
+@public_bp.route("/trending")
+def trending():
+    return render_template("public/trending.html")
 
 
 @public_bp.route("/user/<int:user_id>")
