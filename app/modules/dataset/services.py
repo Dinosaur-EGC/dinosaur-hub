@@ -22,7 +22,7 @@ from app.modules.dataset.repositories import (
     DSMetaDataRepository,
     DSViewRecordRepository,
 )
-from app.modules.featuremodel.repositories import FeatureModelRepository, FMMetaDataRepository
+from app.modules.fossils.repositories import FossilsRepository, FossilsMetaDataRepository
 from app.modules.hubfile.repositories import (
     HubfileDownloadRecordRepository,
     HubfileRepository,
@@ -44,10 +44,10 @@ def calculate_checksum_and_size(file_path):
 class DataSetService(BaseService):
     def __init__(self):
         super().__init__(DataSetRepository())
-        self.feature_model_repository = FeatureModelRepository()
+        self.fossils_repository = FossilsRepository()
         self.author_repository = AuthorRepository()
         self.dsmetadata_repository = DSMetaDataRepository()
-        self.fmmetadata_repository = FMMetaDataRepository()
+        self.fossils_metadata_repository = FossilsMetaDataRepository()
         self.dsdownloadrecord_repository = DSDownloadRecordRepository()
         self.hubfiledownloadrecord_repository = HubfileDownloadRecordRepository()
         self.hubfilerepository = HubfileRepository()
