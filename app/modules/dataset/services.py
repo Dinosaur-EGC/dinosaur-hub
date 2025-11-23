@@ -146,20 +146,20 @@ class DataSetService(BaseService):
                 for dataset, metric_total in self.repository.get_trending(metric, period, limit)
             ]
 
-        def _serialize_trending_result(self, dataset: DataSet, metric_total: int):
-            main_author = dataset.ds_meta_data.authors[0].name if dataset.ds_meta_data.authors else None
-            community = None
-            if dataset.user and dataset.user.profile and dataset.user.profile.affiliation:
-                community = dataset.user.profile.affiliation
+    def _serialize_trending_result(self, dataset: DataSet, metric_total: int):
+        main_author = dataset.ds_meta_data.authors[0].name if dataset.ds_meta_data.authors else None
+        community = None
+        if dataset.user and dataset.user.profile and dataset.user.profile.affiliation:
+            community = dataset.user.profile.affiliation
 
-            return {
-                "id": dataset.id,
-                "title": dataset.ds_meta_data.title,
-                "doi": dataset.get_uvlhub_doi(),
-                "main_author": main_author,
-                "community": community,
-                "total": metric_total,
-            }
+        return {
+            "id": dataset.id,
+            "title": dataset.ds_meta_data.title,
+            "doi": dataset.get_uvlhub_doi(),
+            "main_author": main_author,
+            "community": community,
+            "total": metric_total,
+        }
 
 
     def _create_dataset_shell(self, form, current_user) -> DataSet:
