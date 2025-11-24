@@ -18,17 +18,13 @@ logger = logging.getLogger(__name__)
 
 @public_bp.route("/")
 def index():
-    """
-    Ruta principal (la que ya tenías).
-    """
     logger.info("Access index")
     dataset_service = DataSetService()
     fossils_service = FossilsService()
 
 
     datasets_counter = dataset_service.count_synchronized_datasets()
-    feature_models_counter = fossils_service.count_feature_models()
-
+    fossils_files_counter = fossils_service.count_fossils_files()
 
     total_dataset_downloads = dataset_service.total_dataset_downloads()
     total_fossils_file_downloads = fossils_service.total_fossils_file_downloads()
@@ -40,7 +36,7 @@ def index():
         "public/index.html",
         datasets=dataset_service.latest_synchronized(),
         datasets_counter=datasets_counter,
-        feature_models_counter=feature_models_counter,
+        fossils_files_counter=fossils_files_counter,
         total_dataset_downloads=total_dataset_downloads,
         total_fossils_file_downloads=total_fossils_file_downloads,
         total_dataset_views=total_dataset_views,
