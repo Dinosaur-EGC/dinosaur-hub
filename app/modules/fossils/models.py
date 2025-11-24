@@ -21,6 +21,9 @@ class FossilsMetaData(db.Model):
     title = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text, nullable=False)
 
+    publication_doi = db.Column(db.String(120))
+    tags = db.Column(db.String(120))
+
     def __repr__(self):
         return f'FossilsMetaData<{self.title}>'
 
