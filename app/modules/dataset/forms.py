@@ -24,10 +24,10 @@ class AuthorForm(FlaskForm):
         }
 
 
-class FossilFileForm(FlaskForm):
-    csv_filename = StringField("CSV Filename", validators=[DataRequired()])
-    title = StringField("Title", validators=[DataRequired()])
-    desc = TextAreaField("Description", validators=[DataRequired()])
+class FossilsFileForm(FlaskForm):
+    csv_filename = StringField("CSV Filename", validators=[Optional()])
+    title = StringField("Title", validators=[Optional()])
+    description = TextAreaField("Description", validators=[Optional()])
     
     publication_doi = StringField("Publication DOI", validators=[Optional()])
     tags = StringField("Tags (separated by commas)", validators=[Optional()])
@@ -39,7 +39,7 @@ class FossilFileForm(FlaskForm):
         return {
             "csv_filename": self.csv_filename.data,
             "title": self.title.data,
-            "description": self.desc.data,
+            "description": self.description.data,
             "publication_doi": self.publication_doi.data,
             "tags": self.tags.data,
         }
@@ -89,7 +89,7 @@ class DataSetForm(FlaskForm):
     )
 
     # --- Lista de Modelos Manuales ---
-    fossils = FieldList(FormField(FossilFileForm), min_entries=0)
+    fossils_files = FieldList(FormField(FossilsFileForm), min_entries=0)
 
     submit = SubmitField("Submit")
 
@@ -102,7 +102,7 @@ class DataSetForm(FlaskForm):
         method = self.import_method.data
 
         if method == 'manual':
-            if not self.fossils.data:
+            if not self.fossils_files.data:
                 self.fossils.errors.append('At least one fossil file is required for manual upload.')
                 is_valid = False
         
@@ -144,4 +144,4 @@ class DataSetForm(FlaskForm):
         return [author.get_author() for author in self.authors]
 
     def get_fossils(self):
-        return [fossil.get_fossil() for fossil in self.fossils]
+        return [fossil.get_fossil() for fossil in self.fossils_files]
