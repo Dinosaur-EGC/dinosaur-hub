@@ -22,7 +22,9 @@ from app.modules.dataset.repositories import (
     DSMetaDataRepository,
     DSViewRecordRepository,
 )
+from app.modules.fossils.models import FossilsFile, FossilsMetaData
 from app.modules.fossils.repositories import FossilsRepository, FossilsMetaDataRepository
+from app.modules.hubfile.models import Hubfile
 from app.modules.hubfile.repositories import (
     HubfileDownloadRecordRepository,
     HubfileRepository,
@@ -54,19 +56,20 @@ class DataSetService(BaseService):
         self.dsviewrecord_repostory = DSViewRecordRepository()
         self.hubfileviewrecord_repository = HubfileViewRecordRepository()
 
-    def move_feature_models(self, dataset: DataSet):
+    def move_fossils_files(self, dataset: DataSet):
         current_user = AuthenticationService().get_authenticated_user()
         source_dir = current_user.temp_folder()
         working_dir = os.getenv("WORKING_DIR", "")
         dest_dir = os.path.join(working_dir, "uploads", f"user_{current_user.id}", f"dataset_{dataset.id}")
         os.makedirs(dest_dir, exist_ok=True)
-        for feature_model in dataset.feature_models:
-            uvl_filename = feature_model.fm_meta_data.uvl_filename
-            source_file = os.path.join(source_dir, uvl_filename)
+        
+        for fossil in dataset.fossils_files:
+            csv_filename = fossil.fossils_meta_data.csv_filename
+            source_file = os.path.join(source_dir, csv_filename)
             if os.path.exists(source_file):
                 shutil.move(source_file, dest_dir)
             else:
-                logger.warning(f"File {uvl_filename} not found in temp folder for moving.")
+                logger.warning(f"File {csv_filename} not found in temp folder for moving.")
 
 
     def get_synchronized(self, current_user_id: int) -> DataSet:
@@ -84,8 +87,8 @@ class DataSetService(BaseService):
     def count_synchronized_datasets(self):
         return self.repository.count_synchronized_datasets()
 
-    def count_feature_models(self):
-        return self.feature_model_service.count_feature_models()
+    def count_fossils_files(self):
+        return self.fossils_repository.count()
 
     def count_authors(self) -> int:
         return self.author_repository.count()
@@ -98,88 +101,7 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
-
-    def create_from_form(self, form, current_user) -> DataSet:
-        main_author = {
-            "name": f"{current_user.profile.surname}, {current_user.profile.name}",
-            "affiliation": current_user.profile.affiliation,
-            "orcid": current_user.profile.orcid,
-        }
-
-        ds_metadata = DSMetaData(
-            title=form.title.data,
-            description=form.description.data,
-            publication_type=form.publication_type.data,
-            publication_doi=form.publication_doi.data,
-            dataset_doi = form.dataset_doi.data,
-            tags=form.tags.data,
-        )
-        self.dsmetadata_repository.create(ds_metadata)
-
-        self.author_repository.create(
-            ds_meta_data_id=ds_meta_data.id,
-            **main_author
-        )
-
-        if hasattr(form, 'authors'):
-            for author_form in form.authors:
-                self.author_repository.create(
-                    ds_meta_data_id=ds_metadata.id,
-                    name=author_form.name.data,
-                    affiliation=author_form.affiliation.data,
-                    orcid=author_form.orcid.data
-                )
-
-        dataset = DataSet(user_id=current_user.id, ds_meta_data_id=ds_metadata.id)
-        self.repository.create(dataset)
-
-        current_user = AuthenticationService().get_authenticated_user()
-        source_dir = current_user.temp_folder()
-
-        for fossil_data in form.get_fossils():
-
-            csv_filename = fossil_data['csv_filename']
-            source_path = source_path = self._find_file_in_temp(source_dir, csv_filename)
-            if source_path:
-                self._add_fossil_file(dataset, source_path, fossil_data)
-
-            else:
-                logger.error(f"Archivo {csv_filename} no encontrado en {source_dir}")
-
-        '''try:
-            logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
-            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
-            for author_data in [main_author] + form.get_authors():
-                author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
-                dsmetadata.authors.append(author)
-
-            dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
-
-            for feature_model in form.feature_models:
-                uvl_filename = feature_model.uvl_filename.data
-                fmmetadata = self.fmmetadata_repository.create(commit=False, **feature_model.get_fmmetadata())
-                for author_data in feature_model.get_authors():
-                    author = self.author_repository.create(commit=False, fm_meta_data_id=fmmetadata.id, **author_data)
-                    fmmetadata.authors.append(author)
-
-                fm = self.feature_model_repository.create(
-                    commit=False, data_set_id=dataset.id, fm_meta_data_id=fmmetadata.id
-                )
-
-                # associated files in feature model
-                file_path = os.path.join(current_user.temp_folder(), uvl_filename)
-                checksum, size = calculate_checksum_and_size(file_path)
-
-                file = self.hubfilerepository.create(
-                    commit=False, name=uvl_filename, checksum=checksum, size=size, feature_model_id=fm.id
-                )
-                fm.files.append(file)
-            self.repository.session.commit()
-        except Exception as exc:
-            logger.info(f"Exception creating dataset from form...: {exc}")
-            self.repository.session.rollback()
-            raise exc'''
-        return dataset
+    
 
     def _find_file_in_temp(self, temp_folder, filename):
         """Busca el archivo en la carpeta temporal (recursivo si es necesario)"""
@@ -188,60 +110,10 @@ class DataSetService(BaseService):
                 return os.path.join(root, filename)
         return None
     
-    def _add_fossil_file(self, dataset, source_path, fossil_data):
-        """
-        Crea toda la estructura de base de datos para un archivo Fósil (CSV)
-        y mueve el archivo físico a su destino final.
-        """
-        try:
-            # A. Crear Metadatos Específicos del Fósil (Título, Desc...)
-            fossil_meta = FossilsMetaData(
-                title=fossil_data['title'],
-                description=fossil_data['description'],
-                publication_doi=fossil_data.get('publication_doi', ''),
-                tags=fossil_data.get('tags', ''),
-                csv_filename=fossil_data['csv_filename']
-            )
-            self.fossils_metadata_repository.create(fossil_meta)
-
-            # B. Crear la entidad FossilsFile (Vincula DataSet <-> MetaDatos)
-            fossil_file = FossilsFile(
-                data_set=dataset,
-                fossils_meta_data=fossil_meta
-            )
-            self.fossils_repository.create(fossil_file)
-
-            # C. Gestión del Archivo Físico (Hubfile)
-            
-            # 1. Crear directorio destino: app/uploads/datasets/<dataset_id>/
-            destination_folder = os.path.join(os.getcwd(), 'app', 'uploads', 'datasets', str(dataset.id))
-            os.makedirs(destination_folder, exist_ok=True)
-            
-            destination_path = os.path.join(destination_folder, fossil_data['csv_filename'])
-            
-            # 2. Calcular Checksum y Tamaño antes de mover (o después, da igual)
-            checksum, size = calculate_checksum_and_size(source_path)
-            
-            # 3. Mover archivo (De temp a final)
-            shutil.move(source_path, destination_path)
-            
-            # 4. Crear registro Hubfile
-            hubfile = Hubfile(
-                name=fossil_data['csv_filename'],
-                checksum=checksum,
-                size=size,
-                fossils_file_id=fossil_file.id  # <-- TU NUEVA CLAVE FORÁNEA
-            )
-            self.hubfile_repository.create(hubfile)
-            
-        except Exception as e:
-            logger.error(f"Error al añadir fichero fósil {fossil_data['csv_filename']}: {e}")
-            raise e
 
     def _create_dataset_shell(self, form, current_user) -> DataSet:
         """
         Crea la entidad DataSet y sus metadatos/autores principales.
-        NO hace commit.
         """
         logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
         dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
@@ -257,52 +129,92 @@ class DataSetService(BaseService):
 
         dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
         return dataset
+    
 
-    def _add_feature_model_from_file(self, dataset, uvl_filename, current_user, fm_metadata_form=None):
+    def _add_fossils_file(self, dataset, csv_filename, current_user, fossils_form=None):
         """
-        Añade un FeatureModel a un DataSet basándose en un archivo en temp_folder.
-        Si 'fm_metadata_form' se proporciona, se usa para los metadatos.
-        Si es None, se crean metadatos mínimos.
-        NO hace commit.
+        Añade un FossilsFile (CSV) a un DataSet.
+        Versión robusta: usa el diccionario .data del formulario para evitar errores de atributos.
         """
+        
+        # Valores por defecto
+        title = csv_filename
+        description = "Imported file"
+        publication_doi = ""
+        tags = ""
 
-        if fm_metadata_form:
-            fmmetadata_data = fm_metadata_form.get_fmmetadata()
-            authors_data = fm_metadata_form.get_authors()
-        else:
-            fmmetadata_data = {
-                "uvl_filename": uvl_filename,
-                "title": uvl_filename,
-                "description": "",
-                "publication_type": "NONE",
-                "publication_doi": "",
-                "tags": "",
-                "uvl_version": "",
-            }
-            authors_data = []
+        if fossils_form:
+            if hasattr(fossils_form, 'data') and isinstance(fossils_form.data, dict):
+                form_data = fossils_form.data
+                title = form_data.get('title', title)
+                description = form_data.get('description', description)
+                publication_doi = form_data.get('publication_doi', publication_doi)
+                tags = form_data.get('tags', tags)
+            
+            elif isinstance(fossils_form, dict):
+                title = fossils_form.get('title', title)
+                description = fossils_form.get('description', description)
+                publication_doi = fossils_form.get('publication_doi', publication_doi)
+                tags = fossils_form.get('tags', tags)
 
-        fmmetadata = self.fmmetadata_repository.create(commit=False, **fmmetadata_data)
-        for author_data in authors_data:
-            author = self.author_repository.create(commit=False, fm_meta_data_id=fmmetadata.id, **author_data)
-            fmmetadata.authors.append(author)
+        title = title if title else csv_filename
+        description = description if description else ""
 
-        fm = self.feature_model_repository.create(
-            commit=False, data_set_id=dataset.id, fm_meta_data_id=fmmetadata.id
+        fmmetadata_data = {
+            "csv_filename": csv_filename,
+            "title": title,
+            "description": description,
+            "publication_doi": publication_doi,
+            "tags": tags,
+        }
+
+        fmmetadata = self.fossils_metadata_repository.create(commit=False, **fmmetadata_data)
+
+        fossil = self.fossils_repository.create(
+            commit=False, 
+            data_set_id=dataset.id, 
+            fossils_meta_data_id=fmmetadata.id
         )
 
-        file_path = os.path.join(current_user.temp_folder(), uvl_filename)
-        
+        file_path = os.path.join(current_user.temp_folder(), csv_filename)
         if not os.path.exists(file_path):
-            logger.error(f"File {uvl_filename} not found in temp folder {current_user.temp_folder()} during _add_feature_model.")
-            raise FileNotFoundError(f"File {uvl_filename} was not found in the temporary directory.")
+            raise FileNotFoundError(f"File {csv_filename} not found in temp folder.")
 
         checksum, size = calculate_checksum_and_size(file_path)
 
         file = self.hubfilerepository.create(
-            commit=False, name=uvl_filename, checksum=checksum, size=size, feature_model_id=fm.id
+            commit=False, 
+            name=csv_filename, 
+            checksum=checksum, 
+            size=size, 
+            fossils_file_id=fossil.id
         )
-        fm.files.append(file)
-        logger.info(f"Added FeatureModel '{uvl_filename}' to dataset {dataset.id}")
+        
+        fossil.files.append(file)
+        logger.info(f"Added FossilFile '{csv_filename}' to dataset {dataset.id}")
+
+
+    def create_from_form(self, form, current_user) -> DataSet:
+        """
+        Procesa la subida MANUAL de modelos.
+        """
+        try:
+            dataset = self._create_dataset_shell(form, current_user)
+            
+            for fossils_file_form in form.fossils_files:
+                csv_filename = fossils_file_form.csv_filename.data
+                self._add_fossils_file(
+                    dataset, csv_filename, current_user, fossils_form=fossils_file_form
+                )
+            
+            self.repository.session.commit()
+            
+        except Exception as exc:
+            logger.exception(f"Exception creating dataset from form...: {exc}")
+            self.repository.session.rollback()
+            raise exc
+        return dataset
+
 
     def _process_zip_file(self, dataset, zip_file_obj, current_user):
         """
@@ -320,18 +232,18 @@ class DataSetService(BaseService):
         model_count = 0
         with zipfile.ZipFile(zip_file_obj, 'r') as zip_ref:
             for file_path in zip_ref.namelist():
-                if file_path.endswith('.uvl') and not file_path.startswith('__MACOSX'):
+                if file_path.endswith('.csv') and not file_path.startswith('__MACOSX'):
                     filename = os.path.basename(file_path)
 
                     if not filename:
                         continue
 
                     try:
-                        uvl_content = zip_ref.read(file_path)
+                        csv_content = zip_ref.read(file_path)
                         temp_file_path = os.path.join(temp_folder, filename)
                         
                         with open(temp_file_path, 'wb') as f:
-                            f.write(uvl_content)
+                            f.write(csv_content)
 
                         self._add_feature_model_from_file(dataset, filename, current_user, fm_metadata_form=None)
                         model_count += 1
@@ -340,29 +252,8 @@ class DataSetService(BaseService):
                         logger.warning(f"Failed to process file '{filename}' from ZIP: {e}")
         
         if model_count == 0:
-            logger.warning(f"No .uvl files found in the provided ZIP archive for dataset {dataset.id}.")
+            logger.warning(f"No .csv files found in the provided ZIP archive for dataset {dataset.id}.")
 
-
-    def create_from_form(self, form, current_user) -> DataSet:
-        """
-        Procesa la subida MANUAL de modelos.
-        """
-        try:
-            dataset = self._create_dataset_shell(form, current_user)
-            
-            for feature_model_form in form.feature_models:
-                uvl_filename = feature_model_form.uvl_filename.data
-                self._add_feature_model_from_file(
-                    dataset, uvl_filename, current_user, fm_metadata_form=feature_model_form
-                )
-            
-            self.repository.session.commit()
-            
-        except Exception as exc:
-            logger.exception(f"Exception creating dataset from form...: {exc}")
-            self.repository.session.rollback()
-            raise exc
-        return dataset
 
     def create_from_zip(self, form, current_user) -> DataSet:
         """
