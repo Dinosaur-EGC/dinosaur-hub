@@ -46,11 +46,10 @@ class Author(db.Model):
 
 class DSMetrics(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    number_of_models = db.Column(db.String(120))
-    number_of_features = db.Column(db.String(120))
+    number_of_files = db.Column(db.String(120))
 
     def __repr__(self):
-        return f"DSMetrics<models={self.number_of_models}, features={self.number_of_features}>"
+        return f"DSMetrics<files={self.number_of_files}>"
 
 
 class DSMetaData(db.Model):
@@ -95,7 +94,7 @@ class DataSet(db.Model):
         return f"https://zenodo.org/record/{self.ds_meta_data.deposition_id}" if self.ds_meta_data.dataset_doi else None
 
     def get_files_count(self):
-        return sum(len(fm.files) for fm in self.fossils_files)
+        return sum(len(fossils.files) for fossils in self.fossils_files)
 
     def get_file_total_size(self):
         return sum(file.size for fossils in self.fossils_files for file in fossils.files)
@@ -125,7 +124,7 @@ class DataSet(db.Model):
             "url": self.get_uvlhub_doi(),
             "download": f'{request.host_url.rstrip("/")}/dataset/download/{self.id}',
             "zenodo": self.get_zenodo_url(),
-            "files": [file.to_dict() for fm in self.feature_models for file in fm.files],
+            "files": [file.to_dict() for fossils in self.fossils_files for file in fossils.files],
             "files_count": self.get_files_count(),
             "total_size_in_bytes": self.get_file_total_size(),
             "total_size_in_human_format": self.get_file_total_size_for_human(),
