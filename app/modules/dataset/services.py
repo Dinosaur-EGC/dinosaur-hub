@@ -105,7 +105,48 @@ class DataSetService(BaseService):
             "affiliation": current_user.profile.affiliation,
             "orcid": current_user.profile.orcid,
         }
-        try:
+
+        ds_metadata = DSMetaData(
+            title=form.title.data,
+            description=form.description.data,
+            publication_type=form.publication_type.data,
+            publication_doi=form.publication_doi.data,
+            dataset_doi = form.dataset_doi.data,
+            tags=form.tags.data,
+        )
+        self.dsmetadata_repository.create(ds_metadata)
+
+        self.author_repository.create(
+            ds_meta_data_id=ds_meta_data.id,
+            **main_author
+        )
+
+        if hasattr(form, 'authors'):
+            for author_form in form.authors:
+                self.author_repository.create(
+                    ds_meta_data_id=ds_metadata.id,
+                    name=author_form.name.data,
+                    affiliation=author_form.affiliation.data,
+                    orcid=author_form.orcid.data
+                )
+
+        dataset = DataSet(user_id=current_user.id, ds_meta_data_id=ds_metadata.id)
+        self.repository.create(dataset)
+
+        current_user = AuthenticationService().get_authenticated_user()
+        source_dir = current_user.temp_folder()
+
+        for fossil_data in form.get_fossils():
+
+            csv_filename = fossil_data['csv_filename']
+            source_path = source_path = self._find_file_in_temp(source_dir, csv_filename)
+            if source_path:
+                self._add_fossil_file(dataset, source_path, fossil_data)
+
+            else:
+                logger.error(f"Archivo {csv_filename} no encontrado en {source_dir}")
+
+        '''try:
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
             dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
             for author_data in [main_author] + form.get_authors():
@@ -137,8 +178,65 @@ class DataSetService(BaseService):
         except Exception as exc:
             logger.info(f"Exception creating dataset from form...: {exc}")
             self.repository.session.rollback()
-            raise exc
+            raise exc'''
         return dataset
+
+    def _find_file_in_temp(self, temp_folder, filename):
+        """Busca el archivo en la carpeta temporal (recursivo si es necesario)"""
+        for root, dirs, files in os.walk(temp_folder):
+            if filename in files:
+                return os.path.join(root, filename)
+        return None
+    
+    def _add_fossil_file(self, dataset, source_path, fossil_data):
+        """
+        Crea toda la estructura de base de datos para un archivo Fósil (CSV)
+        y mueve el archivo físico a su destino final.
+        """
+        try:
+            # A. Crear Metadatos Específicos del Fósil (Título, Desc...)
+            fossil_meta = FossilsMetaData(
+                title=fossil_data['title'],
+                description=fossil_data['description'],
+                publication_doi=fossil_data.get('publication_doi', ''),
+                tags=fossil_data.get('tags', ''),
+                csv_filename=fossil_data['csv_filename']
+            )
+            self.fossils_metadata_repository.create(fossil_meta)
+
+            # B. Crear la entidad FossilsFile (Vincula DataSet <-> MetaDatos)
+            fossil_file = FossilsFile(
+                data_set=dataset,
+                fossils_meta_data=fossil_meta
+            )
+            self.fossils_repository.create(fossil_file)
+
+            # C. Gestión del Archivo Físico (Hubfile)
+            
+            # 1. Crear directorio destino: app/uploads/datasets/<dataset_id>/
+            destination_folder = os.path.join(os.getcwd(), 'app', 'uploads', 'datasets', str(dataset.id))
+            os.makedirs(destination_folder, exist_ok=True)
+            
+            destination_path = os.path.join(destination_folder, fossil_data['csv_filename'])
+            
+            # 2. Calcular Checksum y Tamaño antes de mover (o después, da igual)
+            checksum, size = calculate_checksum_and_size(source_path)
+            
+            # 3. Mover archivo (De temp a final)
+            shutil.move(source_path, destination_path)
+            
+            # 4. Crear registro Hubfile
+            hubfile = Hubfile(
+                name=fossil_data['csv_filename'],
+                checksum=checksum,
+                size=size,
+                fossils_file_id=fossil_file.id  # <-- TU NUEVA CLAVE FORÁNEA
+            )
+            self.hubfile_repository.create(hubfile)
+            
+        except Exception as e:
+            logger.error(f"Error al añadir fichero fósil {fossil_data['csv_filename']}: {e}")
+            raise e
 
     def _create_dataset_shell(self, form, current_user) -> DataSet:
         """
