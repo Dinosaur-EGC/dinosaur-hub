@@ -104,7 +104,7 @@ class DataSetSeeder(BaseSeeder):
         load_dotenv()
         working_dir = os.getenv("WORKING_DIR", "")
         src_folder = os.path.join(working_dir, "app", "modules", "dataset", "csv_examples")
-        for i in range(2):
+        for i in range(12):
             file_name = f"file{i+1}.csv"
             fossils_file = seeded_fossils_files[i]
             dataset = next(ds for ds in seeded_datasets if ds.id == fossils_file.data_set_id)
