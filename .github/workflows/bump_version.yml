@@ -26,6 +26,8 @@ jobs:
         with:
           github_token: ${{ secrets.ADMIN_TOKEN }}
           changelog_increment_filename: body.md
+          git_name: "rafseggom"
+          git_email: "rafseggom@alum.us.es"
           
       - name: Print Version
         run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
