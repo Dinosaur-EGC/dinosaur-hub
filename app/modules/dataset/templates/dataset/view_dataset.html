@@ -204,8 +204,8 @@
             </div>
             
 
-            {% for feature_model in dataset.feature_models %}
-                {% for file in feature_model.files %}
+            {% for fossils_file in dataset.fossils_files %}
+                {% for file in fossils_file.files %}
                     <div class="list-group-item">
                         
                         <div class="row">
@@ -267,35 +267,46 @@
                 </div>
             </div>
             <div class="modal-body" style="overflow-y: auto; height: calc(100vh - 50px);">
-                <pre id="fileContent" style="height: 100%; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; background-color: #f5f5f5; padding: 20px; border-radius: 5px; border: 1px solid #ccc;"></pre>
-
+                <div id="csvTableContainer" style="overflow-x: auto; padding: 20px;">
+                    Cargando...
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script type="text/javascript" src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
-
-
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         feather.replace();
     });
 
+    var rawCsvContent = "";
+
     var currentFileId;
 
     function viewFile(fileId) {
+        const container = document.getElementById('csvTableContainer');
+        
+        container.innerHTML = 'Cargando contenido del archivo...';
+
         fetch(`/file/view/${fileId}`)
             .then(response => response.json())
             .then(data => {
-                document.getElementById('fileContent').textContent = data.content;
+                rawCsvContent = data.content;
+                csvToHtmlTable(data.content, 'csvTableContainer');
+                //document.getElementById('fileContent').textContent = data.content;
                 currentFileId = fileId;
                 document.getElementById('downloadButton').href = `/file/download/${fileId}`;
                 var modal = new bootstrap.Modal(document.getElementById('fileViewerModal'));
                 modal.show();
             })
-            .catch(error => console.error('Error loading file:', error));
+            .catch(error => {
+                console.error('Error loading file:', error);
+                document.getElementById('csvTableContainer').innerHTML = 'Error loading file content.';
+            });
     }
 
     function showLoading() {
@@ -402,13 +413,73 @@
     }
     */
     function copyToClipboard() {
-        const text = document.getElementById('fileContent').textContent;
-        navigator.clipboard.writeText(text).then(() => {
-            console.log('Text copied to clipboard');
+        const textToCopy = rawCsvContent;
+
+        if (!textToCopy) {
+            console.error('No text available to copy');
+            alert('No text available to copy');
+            return;
+        }
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Text copied to clipboard');
         }).catch(err => {
             console.error('Failed to copy text: ', err);
+            alert('Failed to copy text to clipboard');
         });
     }
+
+    function csvToHtmlTable(csvString, targetElementId) {
+        const container = document.getElementById(targetElementId);
+        container.innerHTML = ''; // Limpiar el contenido
+
+        // Usar Papa Parse para analizar el CSV de forma robusta
+        Papa.parse(csvString, {
+            header: true, // Tratar la primera fila como encabezado
+            skipEmptyLines: true,
+            complete: function(results) {
+                const data = results.data;
+                const errors = results.errors;
+
+                if (errors.length > 0) {
+                    // Manejar errores de parsing si es necesario
+                    console.error("Papa Parse Errors:", errors);
+                }
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p>El archivo CSV está vacío o no se pudo analizar.</p>';
+                    return;
+                }
+
+                const headers = Object.keys(data[0]);
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-bordered table-sm';
+
+                // Crear cabecera (THEAD)
+                const thead = table.createTHead();
+                const headerRow = thead.insertRow();
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText.trim();
+                    headerRow.appendChild(th);
+                });
+
+                // Crear cuerpo (TBODY)
+                const tbody = table.createTBody();
+                data.forEach(rowObject => {
+                    const tr = tbody.insertRow();
+                    headers.forEach(headerKey => {
+                        const td = tr.insertCell();
+                        // Acceder a los datos por el nombre del encabezado
+                        td.textContent = rowObject[headerKey] ? rowObject[headerKey].trim() : ''; 
+                    });
+                });
+
+                container.appendChild(table);
+            }
+        });
+    }
+    
 </script>
 
 {% endblock %}
