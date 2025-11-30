@@ -283,6 +283,8 @@
         feather.replace();
     });
 
+    var rawCsvContent = "";
+
     var currentFileId;
 
     function viewFile(fileId) {
@@ -293,6 +295,7 @@
         fetch(`/file/view/${fileId}`)
             .then(response => response.json())
             .then(data => {
+                rawCsvContent = data.content;
                 csvToHtmlTable(data.content, 'csvTableContainer');
                 //document.getElementById('fileContent').textContent = data.content;
                 currentFileId = fileId;
@@ -410,11 +413,19 @@
     }
     */
     function copyToClipboard() {
-        const text = document.getElementById('fileContent').textContent;
-        navigator.clipboard.writeText(text).then(() => {
-            console.log('Text copied to clipboard');
+        const textToCopy = rawCsvContent;
+
+        if (!textToCopy) {
+            console.error('No text available to copy');
+            alert('No text available to copy');
+            return;
+        }
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Text copied to clipboard');
         }).catch(err => {
             console.error('Failed to copy text: ', err);
+            alert('Failed to copy text to clipboard');
         });
     }
 
