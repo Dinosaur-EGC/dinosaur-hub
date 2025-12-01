@@ -241,7 +241,7 @@ class DataSetService(BaseService):
     def _process_zip_file(self, dataset, zip_file_obj, current_user):
         """
         Procesa un objeto 'file-like' de ZIP.
-        Extrae los .uvl al temp_folder y llama a _add_feature_model_from_file.
+        Extrae los .csv al temp_folder y llama a _add_fossils_file_.
         NO hace commit.
         """
         temp_folder = current_user.temp_folder()
@@ -251,7 +251,7 @@ class DataSetService(BaseService):
         if not zipfile.is_zipfile(zip_file_obj):
             raise ValueError("File is not a valid ZIP archive.")
             
-        model_count = 0
+        files_count = 0
         with zipfile.ZipFile(zip_file_obj, 'r') as zip_ref:
             for file_path in zip_ref.namelist():
                 if file_path.endswith('.csv') and not file_path.startswith('__MACOSX'):
@@ -267,19 +267,19 @@ class DataSetService(BaseService):
                         with open(temp_file_path, 'wb') as f:
                             f.write(csv_content)
 
-                        self._add_feature_model_from_file(dataset, filename, current_user, fm_metadata_form=None)
-                        model_count += 1
+                        self._add_fossils_file(dataset, filename, current_user, fossils_form=None)
+                        files_count += 1
                         
                     except Exception as e:
                         logger.warning(f"Failed to process file '{filename}' from ZIP: {e}")
         
-        if model_count == 0:
+        if files_count == 0:
             logger.warning(f"No .csv files found in the provided ZIP archive for dataset {dataset.id}.")
 
 
     def create_from_zip(self, form, current_user) -> DataSet:
         """
-        Procesa la subida de modelos desde un archivo ZIP.
+        Procesa la subida de archivos CSV desde un archivo ZIP.
         """
         try:
             dataset = self._create_dataset_shell(form, current_user)
