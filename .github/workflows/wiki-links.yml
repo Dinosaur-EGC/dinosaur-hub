@@ -1,0 +1,26 @@
+name: Wiki Link Checker
+
+on:
+  gollum: # Se activa al editar una página de la Wiki
+  schedule:
+    - cron: '0 9 * * 1' # Lunes a las 9:00 AM
+  workflow_dispatch: # Botón manual
+
+jobs:
+  check-wiki-links:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki_files
+
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v1.9.0
+        with:
+          # Escanea todos los Markdown de la wiki
+          args: --verbose --no-progress './wiki_files/**/*.md'
+          # Si encuentra enlaces rotos, el pipeline falla y te avisa
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
