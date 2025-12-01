@@ -64,6 +64,12 @@ chico sundermann">
                     </a>
                 </li>
 
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'public.trending' else '' }}">
+                    <a class="sidebar-link" href="{{ url_for('public.trending') }}">
+                        <i class="align-middle" data-feather="trending-up"></i> <span class="align-middle">Trending</span>
+                    </a>
+                </li>
+
                 <li class="sidebar-item {{ 'active' if request.endpoint == 'team.index' else '' }}">
                     <a class="sidebar-link" href="{{ url_for('team.index') }}">
                         <i class="align-middle" data-feather="users"></i> <span

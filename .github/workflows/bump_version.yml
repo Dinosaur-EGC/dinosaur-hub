@@ -30,7 +30,7 @@ jobs:
           git_email: "rafseggom@alum.us.es"
           
       - name: Print Version
-        run: echo "Bumped to version ${{ steps.cz.outputs.version }} [skip ci]"
+        run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
