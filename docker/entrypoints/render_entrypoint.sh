@@ -54,7 +54,7 @@ fi
 # --- NEW SECTION: Run Seeders ---
 echo "Running database seeders..."
 # The '|| true' ensures that if seeding fails (e.g., due to duplicates), the deployment continues.
-rosemary db:seed || true
+python -m rosemary db:seed || true
 # --------------------------------
 
 # Start the application using Gunicorn, binding it to port 80
