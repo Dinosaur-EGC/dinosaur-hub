@@ -1,0 +1,11 @@
+hueso,especie,era,estado,pais,yacimiento,fecha
+garra,Stegosaurus,Jurasico,fosilizado,EEUU,Morrison Formation,03/12/2024
+craneo,Stegosaurus,Jurasico,intacto,EEUU,Morrison Formation,22/10/2020
+pelvis,Allosaurus,Jurasico,partido,España,Tabernas,20/02/2020
+craneo,Tyrannosaurus Rex,Cretacico,fragmentado,EEUU,Morrison Formation,14/05/2020
+craneo,Spinosaurus,Cretacico,buen estado,EEUU,Morrison Formation,27/06/2024
+garra,Triceratops,Cretacico,buen estado,España,Tabernas,03/09/2023
+tibia,Tyrannosaurus Rex,Cretacico,intacto,EEUU,Hell Creek,22/04/2023
+húmero,Spinosaurus,Cretacico,partido,España,Lo Hueco,03/03/2020
+tibia,Diplodocus,Jurasico,partido,Marruecos,Kem Kem,12/02/2023
+garra,Diplodocus,Jurasico,fragmentado,España,Lo Hueco,15/01/2021
