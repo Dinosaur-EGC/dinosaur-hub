@@ -1,3 +1,9 @@
+## 1.4.0 (2025-12-01)
+
+### Feat
+
+- ✨ Add database seeding command to entrypoint script
+
 ## 1.3.0 (2025-12-01)
 
 ### Feat
