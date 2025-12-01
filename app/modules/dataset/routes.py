@@ -108,7 +108,7 @@ def create_dataset():
         data = {}
         nodo = "Fakenodo" if USE_FAKENODO else "Zenodo"
         try:
-            nodo_response_json = nodo_service.create_new_deposition(dataset)
+            nodo_response_json = nodo_service.create_new_deposition(dataset.ds_meta_data)
             response_data = json.dumps(nodo_response_json)
             data = json.loads(response_data)
         except Exception as exc:
