@@ -1,0 +1,40 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+  # Programamos una ejecución semanal (Lunes a las 00:00) para detectar
+  # nuevas vulnerabilidades en librerías viejas, aunque no toques el código.
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          # Instalamos las herramientas de auditoría
+          pip install bandit pip-audit
+
+      # 1. BANDIT: Análisis estático del código (SAST)
+      # Busca errores de programación comunes en Python (hardcoded passwords, eval, etc.)
+      # -r app/: Escanea la carpeta app recursivamente.
+      # -ll: Solo reporta severidad Media y Alta (ignoramos las bajas para no hacer ruido).
+      - name: Run Bandit (Code Security)
+        run: bandit -r app/ -ll
+
+      # 2. PIP-AUDIT: Análisis de dependencias (SCA)
+      # Comprueba si las versiones en requirements.txt tienen vulnerabilidades (CVEs) conocidas.
+      # Es el estándar moderno recomendado por la PyPA (Python Packaging Authority).
+      - name: Audit Dependencies (SCA)
+        run: pip-audit -r requirements.txt
