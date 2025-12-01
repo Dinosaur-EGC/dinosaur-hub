@@ -1,0 +1,98 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Job 1: Verificación de sintaxis de commits (Rápido)
+  check-commits:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necesario para verificar historial de commits
+      - name: Validate commit messages
+        uses: webiny/action-conventional-commits@v1.3.0
+
+  # Job 2: Linting y Calidad de Código (Rápido)
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install flake8 flake8-pyproject black isort
+      - name: Lint with flake8
+        run: flake8 app rosemary core
+      - name: Check formatting with black
+        run: black --check app rosemary core
+      - name: Check import order with isort
+        run: isort --check-only app rosemary core
+
+  # Job 3: Tests y Cobertura (Pesado - Incluye lógica de Codacy)
+  test-and-coverage:
+    runs-on: ubuntu-24.04
+    needs: [lint] # Opcional: Si el lint falla, no gastamos tiempo en tests
+    
+    env:
+      MARIADB_ROOT_PASSWORD: uvlhub_root_password
+      MARIADB_DATABASE: uvlhubdb_test
+      MARIADB_TEST_DATABASE: uvlhubdb_test
+      MARIADB_USER: uvlhub_user
+      MARIADB_PASSWORD: uvlhub_password
+      MARIADB_HOSTNAME: 127.0.0.1
+      MARIADB_PORT: 3306
+      FLASK_ENV: testing
+
+    services:
+      mariadb:
+        image: mariadb:12.0.2
+        env:
+          MARIADB_ROOT_PASSWORD: ${{ env.MARIADB_ROOT_PASSWORD }}
+          MARIADB_DATABASE: ${{ env.MARIADB_DATABASE }}
+          MARIADB_USER: ${{ env.MARIADB_USER }}
+          MARIADB_PASSWORD: ${{ env.MARIADB_PASSWORD }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -u root -p$MARIADB_ROOT_PASSWORD"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Delete rosemary editable mode
+        run: sed -i '/rosemary @ file:\/\/\/app/d' requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install codacy-coverage  # Necesario para el reporte
+
+      # Ejecutamos tests UNA VEZ y generamos reporte XML
+      - name: Run Tests with Coverage
+        run: |
+          coverage run -m pytest app/modules/ --ignore-glob='*selenium*'
+          coverage xml
+
+      # Subimos el reporte generado arriba a Codacy
+      - name: Upload coverage to Codacy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python-codacy-coverage -r coverage.xml
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
