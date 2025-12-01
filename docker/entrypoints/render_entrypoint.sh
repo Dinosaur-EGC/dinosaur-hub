@@ -51,6 +51,12 @@ else
     flask db upgrade
 fi
 
+# --- NEW SECTION: Run Seeders ---
+echo "Running database seeders..."
+# The '|| true' ensures that if seeding fails (e.g., due to duplicates), the deployment continues.
+rosemary db:seed || true
+# --------------------------------
+
 # Start the application using Gunicorn, binding it to port 80
 # Set the logging level to info and the timeout to 3600 seconds
 exec gunicorn --bind 0.0.0.0:80 app:app --log-level info --timeout 3600
