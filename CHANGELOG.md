@@ -1,3 +1,9 @@
+## 1.3.0 (2025-12-01)
+
+### Feat
+
+- ✨ Add database seeding step during deployment
+
 ## 1.2.0 (2025-12-01)
 
 ### Feat
