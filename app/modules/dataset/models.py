@@ -104,10 +104,10 @@ class DataSet(db.Model):
 
         return SizeService().get_human_readable_size(self.get_file_total_size())
 
-    def get_uvlhub_doi(self):
+    def get_dinosaurhub_doi(self):
         from app.modules.dataset.services import DataSetService
 
-        return DataSetService().get_uvlhub_doi(self)
+        return DataSetService().get_dinosaurhub_doi(self)
 
     def to_dict(self):
         return {
@@ -121,7 +121,7 @@ class DataSet(db.Model):
             "publication_doi": self.ds_meta_data.publication_doi,
             "dataset_doi": self.ds_meta_data.dataset_doi,
             "tags": self.ds_meta_data.tags.split(",") if self.ds_meta_data.tags else [],
-            "url": self.get_uvlhub_doi(),
+            "url": self.get_dinosaurhub_doi(),
             "download": f'{request.host_url.rstrip("/")}/dataset/download/{self.id}',
             "zenodo": self.get_zenodo_url(),
             "files": [file.to_dict() for fossils in self.fossils_files for file in fossils.files],
