@@ -164,7 +164,7 @@ class ZenodoService(BaseService):
                 for author in dataset.ds_meta_data.authors
             ],
             "keywords": (
-                ["uvlhub"] if not dataset.ds_meta_data.tags else dataset.ds_meta_data.tags.split(", ") + ["uvlhub"]
+                ["dinosaurhub"] if not dataset.ds_meta_data.tags else dataset.ds_meta_data.tags.split(", ") + ["dinosaurhub"]
             ),
             "access_right": "open",
             "license": "CC-BY-4.0",
