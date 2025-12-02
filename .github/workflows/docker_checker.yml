@@ -25,6 +25,6 @@ jobs:
           context: .  
           file: ./docker/images/Dockerfile.prod 
           push: false # Solo comprueba que compila, no la sube a ningún lado
-          tags: uvlhub:test
+          tags: dinosaurhub:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
