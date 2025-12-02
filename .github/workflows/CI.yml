@@ -43,11 +43,11 @@ jobs:
     needs: [lint] # Opcional: Si el lint falla, no gastamos tiempo en tests
     
     env:
-      MARIADB_ROOT_PASSWORD: uvlhub_root_password
-      MARIADB_DATABASE: uvlhubdb_test
-      MARIADB_TEST_DATABASE: uvlhubdb_test
-      MARIADB_USER: uvlhub_user
-      MARIADB_PASSWORD: uvlhub_password
+      MARIADB_ROOT_PASSWORD: dinosaurhub_root_password
+      MARIADB_DATABASE: dinosaurhubdb_test
+      MARIADB_TEST_DATABASE: dinosaurhubdb_test
+      MARIADB_USER: dinosaurhub_user
+      MARIADB_PASSWORD: dinosaurhub_password
       MARIADB_HOSTNAME: 127.0.0.1
       MARIADB_PORT: 3306
       FLASK_ENV: testing
