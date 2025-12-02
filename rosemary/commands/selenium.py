@@ -72,7 +72,7 @@ def selenium(module, driver):
             click.echo(
                 click.style(
                     "Currently it is not possible to run Selenium tests from a Vagrant environment. "
-                    "Do you want to implement it yourself? https://github.com/diverso-lab/uvlhub/pulls",
+                    "Do you want to implement it yourself? https://github.com/diverso-lab/dinosaurhub/pulls",
                     fg="red",
                 )
             )
