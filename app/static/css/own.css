@@ -185,3 +185,37 @@
     padding: 5px;
     border-radius: 3px;
 }
+
+.trending-card {
+    border: 1px solid #e5e7eb;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.trending-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.trending-card-featured {
+    border-width: 2px;
+    border-color: #0662a6;
+    box-shadow: 0 0.5rem 1.25rem rgba(6, 98, 166, 0.2);
+}
+
+.trending-rank {
+    background-color: #0662a6;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.05rem;
+}
+
+.trending-mini-card + .trending-mini-card {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+}

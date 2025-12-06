@@ -4,7 +4,7 @@ import unidecode
 from sqlalchemy import any_, or_
 
 from app.modules.dataset.models import Author, DataSet, DSMetaData, PublicationType
-from app.modules.featuremodel.models import FeatureModel, FMMetaData
+from app.modules.fossils.models import FossilsFile, FossilsMetaData
 from core.repositories.BaseRepository import BaseRepository
 
 
@@ -24,18 +24,18 @@ class ExploreRepository(BaseRepository):
             filters.append(Author.name.ilike(f"%{word}%"))
             filters.append(Author.affiliation.ilike(f"%{word}%"))
             filters.append(Author.orcid.ilike(f"%{word}%"))
-            filters.append(FMMetaData.uvl_filename.ilike(f"%{word}%"))
-            filters.append(FMMetaData.title.ilike(f"%{word}%"))
-            filters.append(FMMetaData.description.ilike(f"%{word}%"))
-            filters.append(FMMetaData.publication_doi.ilike(f"%{word}%"))
-            filters.append(FMMetaData.tags.ilike(f"%{word}%"))
+            filters.append(FossilsMetaData.csv_filename.ilike(f"%{word}%"))
+            filters.append(FossilsMetaData.title.ilike(f"%{word}%"))
+            filters.append(FossilsMetaData.description.ilike(f"%{word}%"))
+            filters.append(FossilsMetaData.publication_doi.ilike(f"%{word}%"))
+            filters.append(FossilsMetaData.tags.ilike(f"%{word}%"))
             filters.append(DSMetaData.tags.ilike(f"%{word}%"))
 
         datasets = (
             self.model.query.join(DataSet.ds_meta_data)
             .join(DSMetaData.authors)
             .join(DataSet.feature_models)
-            .join(FeatureModel.fm_meta_data)
+            .join(FossilsFile.fossils_meta_data)
             .filter(or_(*filters))
             .filter(DSMetaData.dataset_doi.isnot(None))  # Exclude datasets with empty dataset_doi
         )

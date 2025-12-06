@@ -44,6 +44,29 @@ nodo_service = FakenodoService() if USE_FAKENODO else ZenodoService()
 doi_mapping_service = DOIMappingService()
 ds_view_record_service = DSViewRecordService()
 
+@dataset_bp.route("/datasets/trending", methods=["GET"])
+def get_trending_datasets():
+    metric = request.args.get("metric", "downloads").lower()
+    period = request.args.get("period", "week").lower()
+    limit = request.args.get("limit", default=10, type=int) or 10
+    if limit <= 0:
+        limit = 10
+
+    try:
+        trending = dataset_service.get_trending(metric=metric, period=period, limit=limit)
+    except ValueError as exc:
+        return jsonify({"message": str(exc)}), 400
+
+    return jsonify(
+        {
+            "metric": metric,
+            "period": period,
+            "results": [
+                {**result, "metric_label": "downloads" if metric == "downloads" else "views"}
+                for result in trending
+            ],
+        }
+    )
 
 @dataset_bp.route("/dataset/upload", methods=["GET", "POST"])
 @login_required
@@ -63,7 +86,7 @@ def create_dataset():
 
             if import_method == 'manual':
                 dataset = dataset_service.create_from_form(form=form, current_user=current_user)
-                dataset_service.move_feature_models(dataset)
+                dataset_service.move_fossils_files(dataset)
             
             elif import_method == 'zip':
                 dataset = dataset_service.create_from_zip(form=form, current_user=current_user)
@@ -75,7 +98,7 @@ def create_dataset():
                 raise ValueError(f"Invalid import method: {import_method}")
 
             logger.info(f"Created dataset: {dataset}")
-            dataset_service.move_feature_models(dataset)
+            dataset_service.move_fossils_files(dataset)
 
         except Exception as exc:
             logger.exception(f"Exception while create dataset data in local {exc}")
@@ -85,7 +108,7 @@ def create_dataset():
         data = {}
         nodo = "Fakenodo" if USE_FAKENODO else "Zenodo"
         try:
-            nodo_response_json = nodo_service.create_new_deposition(dataset)
+            nodo_response_json = nodo_service.create_new_deposition(dataset.ds_meta_data)
             response_data = json.dumps(nodo_response_json)
             data = json.loads(response_data)
         except Exception as exc:
@@ -101,8 +124,8 @@ def create_dataset():
 
             try:
                 # iterate for each feature model (one feature model = one request to Zenodo)
-                for feature_model in dataset.feature_models:
-                    nodo_service.upload_file(dataset, deposition_id, feature_model)
+                for fossils_file in dataset.fossils_files:
+                    nodo_service.upload_file(dataset, deposition_id, fossils_file)
 
                 # publish deposition
                 nodo_service.publish_deposition(deposition_id)
@@ -141,7 +164,7 @@ def upload():
     file = request.files["file"]
     temp_folder = current_user.temp_folder()
 
-    if not file or not file.filename.endswith(".uvl"):
+    if not file or not file.filename.endswith(".csv"):
         return jsonify({"message": "No valid file"}), 400
 
     # create temp folder
@@ -169,7 +192,7 @@ def upload():
     return (
         jsonify(
             {
-                "message": "UVL uploaded and validated successfully",
+                "message": "CSV uploaded and validated successfully",
                 "filename": new_filename,
             }
         ),

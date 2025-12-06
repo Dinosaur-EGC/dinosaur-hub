@@ -1,5 +1,5 @@
 {
-  "name": "UVLHub Dev",
+  "name": "DinosaurHub Dev",
   "dockerComposeFile": "../docker/docker-compose.dev.yml",
   "service": "web",
   "workspaceFolder": "/app",
