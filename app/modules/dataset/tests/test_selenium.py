@@ -235,6 +235,67 @@ def test_selenium_upload_from_zip():
             except:
                 pass
 
+def test_selenium_upload_from_github():
+    driver = initialize_driver()
+    
+    try:
+        host = get_host_for_selenium_testing()
+
+        driver.get(f"{host}/login")
+        wait_for_page_to_load(driver)
+        driver.find_element(By.NAME, "email").send_keys("user1@example.com")
+        driver.find_element(By.NAME, "password").send_keys("1234")
+        driver.find_element(By.NAME, "password").send_keys(Keys.RETURN)
+        
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "a[href='/dataset/upload']"))
+        )
+
+        initial_datasets = count_datasets(driver, host)
+
+        driver.get(f"{host}/dataset/upload")
+        
+        title_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "title"))
+        )
+        title_field.send_keys("Prueba Selenium GitHub")
+        driver.find_element(By.ID, "desc").send_keys("Prueba de interfaz para subir desde GitHub")
+        
+        github_radio = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.ID, "import_method-github"))
+        )
+        try:
+            github_radio.click()
+        except:
+            driver.execute_script("arguments[0].click();", github_radio)
+
+        github_input = WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "github_url"))
+        )
+        github_input.send_keys("https://github.com/sbf6606/csv-files")
+
+        checkbox = driver.find_element(By.ID, "agreeCheckbox")
+        driver.execute_script("arguments[0].click();", checkbox)
+
+        upload_btn = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.ID, "upload_button"))
+        )
+        upload_btn.click()
+
+        WebDriverWait(driver, 10).until(EC.url_to_be(f"{host}/dataset/list"))
+        
+        final_datasets = count_datasets(driver, host)
+        assert final_datasets == initial_datasets + 1, "El número de datasets no ha aumentado tras subir desde GitHub"
+
+        print("✅ test_selenium_upload_from_github PASSED")
+
+    except Exception as e:
+        print(f"❌ Error en test_selenium_upload_from_github: {e}")
+        raise e
+
+    finally:
+        close_driver(driver)
+
 
 
 if __name__ == "__main__":
@@ -246,4 +307,7 @@ if __name__ == "__main__":
 
     print("\n--- Starting test_selenium_upload_from_zip ---")
     test_selenium_upload_from_zip()
+
+    print("\n--- Starting test_selenium_upload_from_github ---")
+    test_selenium_upload_from_github()
     
