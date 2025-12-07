@@ -1,6 +1,7 @@
 import io
 import zipfile
 import pytest
+import requests
 from unittest.mock import MagicMock, patch, mock_open
 from app.modules.dataset.services import DataSetService
 from app.modules.dataset.models import DataSet
@@ -139,10 +140,30 @@ class TestDatasetUploadChoices:
             service.repository.session.commit.assert_called_once()
 
     def test_create_from_github_invalid_url(self, service, mock_user, mock_form):
-        """Testea que rechace URLs que no son de GitHub."""
-        mock_form.github_url.data = "https://gitlab.com/user/repo" # Dominio incorrecto
+        mock_form.github_url.data = "https://gitlab.com/user/repo"
 
         with pytest.raises(ValueError, match="Invalid GitHub URL"):
             service.create_from_github(mock_form, mock_user)
         
         service.repository.session.rollback.assert_called()
+
+    @patch("app.modules.dataset.services.requests.get")
+    def test_create_from_github_api_failure_defaults_to_main(self, mock_get, service, mock_user, mock_form, mock_zip_file):
+        mock_form.github_url.data = "https://github.com/user/repo"
+
+        service.create = MagicMock() 
+        service.create.return_value = MagicMock(id=10)
+
+        mock_get.side_effect = [
+            requests.RequestException("API Connection Error"),
+            MagicMock(status_code=200, content=mock_zip_file.getvalue())
+        ]
+
+        with patch("app.modules.dataset.services.os.makedirs"), \
+             patch("app.modules.dataset.services.open", mock_open()), \
+             patch("app.modules.dataset.services.calculate_checksum_and_size", return_value=("hash", 100)), \
+             patch("app.modules.dataset.services.os.path.exists", return_value=True):
+
+            service.create_from_github(mock_form, mock_user)
+
+            service.repository.session.commit.assert_called_once()
