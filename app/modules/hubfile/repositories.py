@@ -24,7 +24,10 @@ class HubfileRepository(BaseRepository):
 
     def get_dataset_by_hubfile(self, hubfile: Hubfile) -> DataSet:
         return db.session.query(DataSet).join(FossilsFile).join(Hubfile).filter(Hubfile.id == hubfile.id).first()
-
+    def filter_by_ids(self, hubfile_ids: list[int]) -> list[Hubfile]:
+        if not hubfile_ids:
+            return []
+        return self.model.query.filter(self.model.id.in_(hubfile_ids)).all()
 
 class HubfileViewRecordRepository(BaseRepository):
     def __init__(self):
