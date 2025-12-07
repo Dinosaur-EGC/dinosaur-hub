@@ -49,3 +49,20 @@ class DatasetUser(HttpUser):
         }
 
         self.client.post("/dataset/upload", data=data, files=files)
+
+    @task(1)
+    def upload_from_github(self):
+        response = self.client.get("/dataset/upload")
+        csrf_token = get_csrf_token(response)
+
+        data = {
+            "title": "Load Test GitHub Dataset",
+            "desc": "Description for load test github upload",
+            "publication_type": "none",
+            "tags": "test,locust,github",
+            "import_method": "github",
+            "github_url": "https://github.com/sbf6606/csv-files",
+            "csrf_token": csrf_token
+        }
+
+        self.client.post("/dataset/upload", data=data)
