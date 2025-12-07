@@ -17,7 +17,7 @@ chico sundermann">
     <link rel="shortcut icon" href="{{ url_for("static", filename="img/icons/icon-250x250.png") }}"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   
-    <link rel="canonical" href="https://www.uvlhub.io"/>
+    <link rel="canonical" href="https://www.dinosaurhub.io"/>
 
     <title>{{ FLASK_APP_NAME }} - Repository of feature models in UVL </title>
 
@@ -61,6 +61,12 @@ chico sundermann">
                 <li class="sidebar-item {{ 'active' if request.endpoint == 'explore.index' else '' }}">
                     <a class="sidebar-link" href="{{ url_for('explore.index') }}">
                         <i class="align-middle" data-feather="search"></i> <span class="align-middle">Explore</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'public.trending' else '' }}">
+                    <a class="sidebar-link" href="{{ url_for('public.trending') }}">
+                        <i class="align-middle" data-feather="trending-up"></i> <span class="align-middle">Trending</span>
                     </a>
                 </li>
 
@@ -136,7 +142,7 @@ chico sundermann">
             <div class="sidebar-cta text-center">
                 <div class="sidebar-cta-content">
                     <div class="text">
-                        Compilation build <a href="https://github.com/diverso-lab/uvlhub/releases/tag/{{ APP_VERSION }}" target="_blank">{{ APP_VERSION }}</a>
+                        Compilation build <a href="https://github.com/diverso-lab/dinosaurhub/releases/tag/{{ APP_VERSION }}" target="_blank">{{ APP_VERSION }}</a>
                     </div>
                 </div>
             </div>
@@ -217,8 +223,8 @@ chico sundermann">
 </div>
 
 <pre id="bibtex_cite" style="display: none">
-@article{romero2024_uvlhub_open_science,
-    title = {UVLHub: A feature model data repository using UVL and open science principles},
+@article{romero2024_dinosaurhub_open_science,
+    title = {Dinosaurhub: A feature model data repository using UVL and open science principles},
     journal = {Journal of Systems and Software},
     pages = {112150},
     year = {2024},
@@ -233,7 +239,7 @@ chico sundermann">
                         
 <pre id="ris_cite" style="display: none">
 TY  - JOUR
-T1  - UVLHub: A feature model data repository using UVL and open science principles
+T1  - Dinosaurhub: A feature model data repository using UVL and open science principles
 AU  - Romero-Organvidez, David
 AU  - Galindo, José A.
 AU  - Sundermann, Chico
@@ -257,7 +263,7 @@ ER  -
 
 <pre id="text_cite" style="display: none;">
 David Romero-Organvidez, José A. Galindo, Chico Sundermann, Jose-Miguel Horcas, David Benavides,
-UVLHub: A feature model data repository using UVL and open science principles,
+Dinosaurhub: A feature model data repository using UVL and open science principles,
 Journal of Systems and Software,
 2024,
 112150,
@@ -269,7 +275,7 @@ Keywords: Feature models; Software product line; Variability; Dataset; Uvl
 </pre>
 
 <pre id="apa_cite" style="display: none;">
-Romero-Organvidez, D., Galindo, J. A., Sundermann, C., Horcas, J.-M., & Benavides, D. (2024). UVLHub: A feature model data repository using UVL and open science principles. Journal of Systems and Software, 2024, 112150. https://doi.org/10.1016/j.jss.2024.112150
+Romero-Organvidez, D., Galindo, J. A., Sundermann, C., Horcas, J.-M., & Benavides, D. (2024). Dinosaurhub: A feature model data repository using UVL and open science principles. Journal of Systems and Software, 2024, 112150. https://doi.org/10.1016/j.jss.2024.112150
 </pre>
 
 <script src="{{ url_for("static", filename="js/app.js") }}"></script>

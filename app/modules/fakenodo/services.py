@@ -8,7 +8,7 @@ from flask_login import current_user
 from app.modules.dataset.models import DataSet, DSMetaData
 from app.modules.fakenodo.models import Deposition
 from app.modules.fakenodo.repositories import DepositionRepo
-from app.modules.featuremodel.models import FeatureModel
+from app.modules.fossils.models import FossilsFile
 from core.configuration.configuration import uploads_folder_name
 from core.services.BaseService import BaseService
 
@@ -53,7 +53,7 @@ class FakenodoService(BaseService):
                 for author in ds_meta_data.authors
             ],
             "keywords": (
-                ["uvlhub"] if not ds_meta_data.tags else ds_meta_data.tags.split(", ") + ["uvlhub"]
+                ["dinosaurhub"] if not ds_meta_data.tags else ds_meta_data.tags.split(", ") + ["dinosaurhub"]
             ),
             "access_right": "open",
             "license": "CC-BY-4.0",
@@ -70,7 +70,7 @@ class FakenodoService(BaseService):
         except Exception as error400:
             raise Exception(f"Failed to create deposition in Fakenodo with error: {str(error400)}")
 
-    def upload_file(self, dataset: DataSet, deposition_id: int, feature_model: FeatureModel, user=None):
+    def upload_file(self, dataset: DataSet, deposition_id: int, fossils_file: FossilsFile, user=None):
         """
         Upload a file to a deposition in Fakenodo.
 
@@ -83,13 +83,13 @@ class FakenodoService(BaseService):
             dict: The response in JSON format with the details of the uploaded file.
         """
 
-        uvl_filename = feature_model.fm_meta_data.uvl_filename
+        fossils_file_name = fossils_file.fossils_meta_data.csv_filename
         user_id = current_user.id if user is None else user.id
-        file_path = os.path.join(uploads_folder_name(), f"user_{str(user_id)}", f"dataset_{dataset.id}/", uvl_filename)
+        file_path = os.path.join(uploads_folder_name(), f"user_{str(user_id)}", f"dataset_{dataset.id}/", fossils_file_name)
 
         request = {
             "id": deposition_id,
-            "file": uvl_filename,
+            "file": fossils_file_name,
             "fileSize": os.path.getsize(file_path),
             "checksum": checksum(file_path),
             "message": f"File Uploaded to deposition with id {deposition_id}"

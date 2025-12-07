@@ -19,7 +19,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <h2>
 
-                                <a href="{{ dataset.get_uvlhub_doi() }}">
+                                <a href="{{ dataset.get_dinosaurhub_doi() }}">
                                     {{ dataset.ds_meta_data.title }}
                                 </a>
 
@@ -66,14 +66,14 @@
                         <div class="row mb-2">
 
                             <div class="col-12">
-                                <a href="{{ dataset.get_uvlhub_doi() }}">{{ dataset.get_uvlhub_doi() }}</a>
-                                 <div id="dataset_doi_uvlhub_{{ dataset.id }}" style="display: none">
-                                {{ dataset.get_uvlhub_doi() }}
+                                <a href="{{ dataset.get_dinosaurhub_doi() }}">{{ dataset.get_dinosaurhub_doi() }}</a>
+                                 <div id="dataset_doi_dinosaurhub_{{ dataset.id }}" style="display: none">
+                                {{ dataset.get_dinosaurhub_doi() }}
                             </div>
 
                             <i data-feather="clipboard" class="center-button-icon"
                                style="cursor: pointer"
-                               onclick="copyText('dataset_doi_uvlhub_{{ dataset.id }}')"></i>
+                               onclick="copyText('dataset_doi_dinosaurhub_{{ dataset.id }}')"></i>
                             </div>
 
 
@@ -92,7 +92,7 @@
 
                         <div class="row  mt-4">
                             <div class="col-12">
-                                <a href="{{ dataset.get_uvlhub_doi() }}" class="btn btn-outline-primary btn-sm"
+                                <a href="{{ dataset.get_dinosaurhub_doi() }}" class="btn btn-outline-primary btn-sm"
                                    style="border-radius: 5px;">
                                     <i data-feather="eye" class="center-button-icon"></i>
                                     View dataset
@@ -128,6 +128,50 @@
 
                     <div class="card-body">
 
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h2> <b>Trending datasets</b> </h2>
+                            <a href="{{ url_for('public.trending') }}" class="btn btn-outline-primary btn-sm">
+                                <i data-feather="trending-up" class="center-button-icon"></i>
+                                Trending
+                            </a>
+                        </div>
+
+                        <p class="text-secondary mb-3">Most downloaded datasets this week</p>
+
+                        {% if trending_datasets %}
+                            <ol class="list-unstyled mb-0">
+                                {% for dataset in trending_datasets %}
+                                    <li class="trending-mini-card pb-2">
+                                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                            <div>
+                                                <a href="{{ dataset.doi }}" class="fw-semibold text-decoration-none">{{ dataset.title }}</a>
+                                                {% if dataset.main_author %}
+                                                    <div class="text-secondary small">by {{ dataset.main_author }}</div>
+                                                {% endif %}
+                                                {% if dataset.community %}
+                                                    <div class="text-secondary small">{{ dataset.community }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge bg-primary">{{ dataset.total }} downloads</span>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}
+                            <p class="mb-0 text-secondary">No downloads recorded for this week yet.</p>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+            </div>
+
+                <div class="col-12">
+
+                <div class="card">
+
+                    <div class="card-body">
+
                         <h2> <b>Hub statistics</b> </h2>
                     
                         <h1 class="h2 mb-3">
@@ -137,23 +181,11 @@
                             </h4>
                     
                             <h4 class="h4 mb-3" class="stats-color">
-                                <i data-feather="file" class="align-middle mr-2 stats-color"></i>&nbsp;{{ feature_models_counter }} feature models
-                            </h4>
-                    
-                            <h4 class="h4 mb-3" class="stats-color">
                                 <i data-feather="eye" class="align-middle mr-2 stats-color"></i>&nbsp;{{ total_dataset_views }} datasets viewed
                             </h4>
                     
                             <h4 class="h4 mb-3" class="stats-color">
-                                <i data-feather="eye" class="align-middle mr-2 stats-color"></i>&nbsp;{{ total_feature_model_views }} feature models viewed
-                            </h4>
-                    
-                            <h4 class="h4 mb-3" class="stats-color">
                                 <i data-feather="download" class="align-middle mr-2 stats-color"></i>&nbsp;{{ total_dataset_downloads }} datasets downloaded
-                            </h4>
-                    
-                            <h4 class="h4" class="stats-color">
-                                <i data-feather="download" class="align-middle mr-2 stats-color"></i>&nbsp;{{ total_feature_model_downloads }} feature models downloaded
                             </h4>
                     
                         </h1>

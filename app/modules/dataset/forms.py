@@ -24,35 +24,24 @@ class AuthorForm(FlaskForm):
         }
 
 
-class FeatureModelForm(FlaskForm):
-    uvl_filename = StringField("UVL Filename", validators=[DataRequired()])
+class FossilsFileForm(FlaskForm):
+    csv_filename = StringField("CSV Filename", validators=[Optional()])
     title = StringField("Title", validators=[Optional()])
-    desc = TextAreaField("Description", validators=[Optional()])
-    publication_type = SelectField(
-        "Publication type",
-        choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
-        validators=[Optional()],
-    )
+    description = TextAreaField("Description", validators=[Optional()])
+    
     publication_doi = StringField("Publication DOI", validators=[Optional()])
-    tags = StringField("Tags (separated by commas)")
-    version = StringField("UVL Version")
-    authors = FieldList(FormField(AuthorForm))
+    tags = StringField("Tags (separated by commas)", validators=[Optional()])
 
     class Meta:
         csrf = False  # disable CSRF because is subform
 
-    def get_authors(self):
-        return [author.get_author() for author in self.authors]
-
-    def get_fmmetadata(self):
+    def get_fossil(self):
         return {
-            "uvl_filename": self.uvl_filename.data,
+            "csv_filename": self.csv_filename.data,
             "title": self.title.data,
-            "description": self.desc.data,
-            "publication_type": self.publication_type.data,
+            "description": self.description.data,
             "publication_doi": self.publication_doi.data,
             "tags": self.tags.data,
-            "uvl_version": self.version.data,
         }
 
 
@@ -100,7 +89,7 @@ class DataSetForm(FlaskForm):
     )
 
     # --- Lista de Modelos Manuales ---
-    feature_models = FieldList(FormField(FeatureModelForm), min_entries=0)
+    fossils_files = FieldList(FormField(FossilsFileForm), min_entries=0)
 
     submit = SubmitField("Submit")
 
@@ -113,8 +102,8 @@ class DataSetForm(FlaskForm):
         method = self.import_method.data
 
         if method == 'manual':
-            if not self.feature_models.data:
-                self.feature_models.errors.append('At least one feature model is required for manual upload.')
+            if not self.fossils_files.data:
+                self.fossils.errors.append('At least one fossil file is required for manual upload.')
                 is_valid = False
         
         elif method == 'zip':
@@ -154,5 +143,5 @@ class DataSetForm(FlaskForm):
     def get_authors(self):
         return [author.get_author() for author in self.authors]
 
-    def get_feature_models(self):
-        return [fm.get_feature_model() for fm in self.feature_models]
+    def get_fossils(self):
+        return [fossil.get_fossil() for fossil in self.fossils_files]
