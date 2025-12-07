@@ -33,7 +33,7 @@ def create_mock_dataset(id, doi, title, author_name=None, community=None):
     mock_dataset.id = id
     mock_dataset.ds_meta_data = mock_ds_meta_data
     mock_dataset.user = mock_user
-    mock_dataset.get_uvlhub_doi.return_value = f"http://localhost/doi/{doi}"
+    mock_dataset.get_dinosaurhub_doi.return_value = f"http://localhost/doi/{doi}"
     
     return mock_dataset
 
@@ -107,8 +107,8 @@ def test_service_serialize_trending_result_full_info(dataset_service):
         author_name="Perez, L.", 
         community="Diversolab"
     )
-    # Aseguramos que el mock del método get_uvlhub_doi devuelve el valor esperado
-    dataset.get_uvlhub_doi.return_value = "http://localhost/doi/10.9999/test"
+    # Aseguramos que el mock del método get_dinosaurhub_doi devuelve el valor esperado
+    dataset.get_dinosaurhub_doi.return_value = "http://localhost/doi/10.9999/test"
     
     result = dataset_service._serialize_trending_result(dataset, 42)
     

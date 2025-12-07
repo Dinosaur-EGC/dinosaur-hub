@@ -9,7 +9,7 @@ dataset_fields = {
     "dataset_id": "id",
     "created": "created_at",
     "name": "name",
-    "doi": "get_uvlhub_doi",
+    "doi": "get_dinosaurhub_doi",
     "files": "files",
 }
 
