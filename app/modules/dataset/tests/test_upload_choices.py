@@ -167,3 +167,23 @@ class TestDatasetUploadChoices:
             service.create_from_github(mock_form, mock_user)
 
             service.repository.session.commit.assert_called_once()
+
+    @patch("app.modules.dataset.services.requests.get")
+    def test_create_from_github_download_failure(self, mock_get, service, mock_user, mock_form):
+        mock_form.github_url.data = "https://github.com/user/repo"
+
+        service.create = MagicMock()
+
+        mock_response_api = MagicMock()
+        mock_response_api.status_code = 200
+        mock_response_api.json.return_value = {'default_branch': 'master'}
+
+        mock_get.side_effect = [
+            mock_response_api,
+            requests.RequestException("Download Timeout")
+        ]
+
+        with pytest.raises(ValueError, match="Could not download repository"):
+            service.create_from_github(mock_form, mock_user)
+
+        service.repository.session.rollback.assert_called()
