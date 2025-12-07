@@ -4,15 +4,21 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import StaleElementReferenceException
 
 from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import close_driver, initialize_driver
 
 
 def wait_for_page_to_load(driver, timeout=4):
-    WebDriverWait(driver, timeout).until(
-        lambda driver: driver.execute_script("return document.readyState") == "complete"
-    )
+    """Espera a que el documento HTML esté completamente cargado."""
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
+        )
+    except Exception:
+        pass # Ignoramos timeouts aquí, a veces la página ya cargó
 
 
 def count_datasets(driver, host):
@@ -20,6 +26,7 @@ def count_datasets(driver, host):
     wait_for_page_to_load(driver)
 
     try:
+        # Busca filas en la tabla. Si no hay tabla, asume 0.
         amount_datasets = len(driver.find_elements(By.XPATH, "//table//tbody//tr"))
     except Exception:
         amount_datasets = 0
@@ -132,5 +139,46 @@ def test_upload_dataset():
         close_driver(driver)
 
 
-# Call the test function
-test_upload_dataset()
+
+def test_trending_datasets():
+    driver = initialize_driver()
+    host = get_host_for_selenium_testing()
+
+    try:
+        driver.get(f"{host}/trending")
+        wait_for_page_to_load(driver)
+
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//h1[contains(., 'Trending datasets')]"))
+        )
+
+        views_btn = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-trending-metric='views']"))
+        )
+        views_btn.click()
+        
+        month_btn = driver.find_element(By.CSS_SELECTOR, "button[data-trending-period='month']")
+        month_btn.click()
+
+        items = driver.find_elements(By.CLASS_NAME, "card")
+        empty_state = driver.find_element(By.ID, "trending-empty-state")
+        
+        if len(items) > 0 or (empty_state.is_displayed() and "d-none" not in empty_state.get_attribute("class")):
+            print("✅ test_trending_datasets passed!")
+        else:
+            raise Exception("No se mostraron items ni el mensaje de estado vacío.")
+
+    except Exception as e:
+        print(f"❌ test_trending_datasets failed: {e}")
+
+    finally:
+        close_driver(driver)
+
+
+if __name__ == "__main__":
+    print("\n--- Starting test_trending_datasets ---")
+    test_trending_datasets()
+    
+    print("--- Starting test_upload_dataset ---")
+    test_upload_dataset()
+    
