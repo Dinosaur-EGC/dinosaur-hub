@@ -91,3 +91,12 @@ class TestDatasetUploadChoices:
             service.create_from_zip(mock_form, mock_user)
     
         service.repository.session.rollback.assert_called_once()
+
+    def test_create_from_zip_exception_handling(self, service, mock_user, mock_form, mock_zip_file):
+        mock_form.zip_file.data = mock_zip_file
+        service.dsmetadata_repository.create.side_effect = Exception("Database Error")
+
+        with pytest.raises(Exception, match="Database Error"):
+            service.create_from_zip(mock_form, mock_user)
+
+        service.repository.session.rollback.assert_called_once()
