@@ -1,10 +1,7 @@
 import os
 import subprocess
-
 import click
-
 import core.selenium.common as driver_selector
-
 
 @click.command("selenium", help="Executes Selenium tests based on the environment (local, Docker, or Vagrant).")
 @click.argument("module", required=False)
@@ -61,7 +58,15 @@ def selenium(module, driver):
             click.echo(f"→ Command: {' '.join(cmd)}")
 
             try:
-                subprocess.run(cmd, check=True)
+                # Preparamos las variables de entorno para el subproceso
+                env_vars = os.environ.copy()
+                
+                # FIX: Si estamos en local, añadimos el directorio actual al PYTHONPATH
+                # Esto permite que los tests encuentren el módulo 'core' sin configuración manual
+                if env == "local":
+                    env_vars["PYTHONPATH"] = os.getcwd()
+
+                subprocess.run(cmd, check=True, env=env_vars)
                 click.echo(click.style("✅ Selenium tests completed successfully.", fg="green"))
             except subprocess.CalledProcessError:
                 click.echo(click.style("❌ Selenium tests failed.", fg="red"))
