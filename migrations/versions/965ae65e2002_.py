@@ -1,8 +1,8 @@
-"""Add shopping cart
+"""empty message
 
-Revision ID: 8bd4e2cd1aa8
-Revises: e2a325ea69b5
-Create Date: 2025-11-11 12:51:33.120424
+Revision ID: 965ae65e2002
+Revises: b757875a0cea
+Create Date: 2025-12-07 21:31:23.349095
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '8bd4e2cd1aa8'
-down_revision = 'e2a325ea69b5'
+revision = '965ae65e2002'
+down_revision = 'b757875a0cea'
 branch_labels = None
 depends_on = None
 
