@@ -275,6 +275,7 @@ class DataSetService(BaseService):
         
         if files_count == 0:
             logger.warning(f"No .csv files found in the provided ZIP archive for dataset {dataset.id}.")
+            raise ValueError("No se encontraron archivos CSV válidos en el repositorio.")
 
 
     def create_from_zip(self, form, current_user) -> DataSet:
