@@ -32,6 +32,8 @@ def index():
     total_dataset_views = dataset_service.total_dataset_views()
     total_fossils_file_views = fossils_service.total_fossils_file_views()
 
+    trending_list = dataset_service.get_trending(metric="downloads", period="week", limit=5)
+
     return render_template(
         "public/index.html",
         datasets=dataset_service.latest_synchronized(),
@@ -41,6 +43,7 @@ def index():
         total_fossils_file_downloads=total_fossils_file_downloads,
         total_dataset_views=total_dataset_views,
         total_fossils_file_views=total_fossils_file_views,
+        trending_datasets=trending_list
     )
 
 
