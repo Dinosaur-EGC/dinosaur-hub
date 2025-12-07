@@ -100,3 +100,40 @@ class TestDatasetUploadChoices:
             service.create_from_zip(mock_form, mock_user)
 
         service.repository.session.rollback.assert_called_once()
+
+
+    '''
+    UPLOAD FROM GITHUB
+    '''
+
+    @patch("app.modules.dataset.services.requests.get")
+    def test_create_from_github_success(self, mock_get, service, mock_user, mock_form, mock_zip_file):
+        github_url = "https://github.com/user/repo"
+        mock_form.github_url.data = github_url
+
+        mock_response_api = MagicMock()
+        mock_response_api.status_code = 200
+        mock_response_api.json.return_value = {'default_branch': 'main'}
+        
+        mock_response_zip = MagicMock()
+        mock_response_zip.status_code = 200
+        mock_response_zip.content = mock_zip_file.getvalue()
+
+        mock_get.side_effect = [mock_response_api, mock_response_zip]
+
+        with patch("app.modules.dataset.services.os.makedirs"), \
+             patch("app.modules.dataset.services.open", mock_open()), \
+             patch("app.modules.dataset.services.calculate_checksum_and_size", return_value=("hash", 100)), \
+             patch("app.modules.dataset.services.os.path.exists", return_value=True):
+
+            service.create_from_github(mock_form, mock_user)
+
+            mock_get.assert_any_call(
+                "https://api.github.com/repos/user/repo", 
+                headers={'Accept': 'application/vnd.github.v3+json'}
+            )
+            mock_get.assert_any_call(
+                "https://github.com/user/repo/archive/refs/heads/main.zip", 
+                stream=True
+            )
+            service.repository.session.commit.assert_called_once()
