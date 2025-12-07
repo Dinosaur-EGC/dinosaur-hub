@@ -126,7 +126,7 @@ class DataSetService(BaseService):
         return {
             "id": dataset.id,
             "title": dataset.ds_meta_data.title,
-            "doi": dataset.get_uvlhub_doi(),
+            "doi": dataset.get_dinosaurhub_doi(),
             "main_author": main_author,
             "community": community,
             "total": metric_total,
@@ -275,6 +275,7 @@ class DataSetService(BaseService):
         
         if files_count == 0:
             logger.warning(f"No .csv files found in the provided ZIP archive for dataset {dataset.id}.")
+            raise ValueError("No se encontraron archivos CSV válidos en el repositorio.")
 
 
     def create_from_zip(self, form, current_user) -> DataSet:
@@ -348,7 +349,7 @@ class DataSetService(BaseService):
     def update_dsmetadata(self, id, **kwargs):
         return self.dsmetadata_repository.update(id, **kwargs)
 
-    def get_uvlhub_doi(self, dataset: DataSet) -> str:
+    def get_dinosaurhub_doi(self, dataset: DataSet) -> str:
         domain = os.getenv("DOMAIN", "localhost")
         return f"http://{domain}/doi/{dataset.ds_meta_data.dataset_doi}"
     
