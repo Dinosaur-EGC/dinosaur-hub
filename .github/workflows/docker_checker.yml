@@ -1,0 +1,30 @@
+name: Docker Build Check
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'vagrant/**' # Ignoramos cambios en Vagrant para este check
+
+jobs:
+  build-production-image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Configuramos el motor de construcción de Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Construimos la imagen usando el Dockerfile de PROD
+      - name: Build Production Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .  
+          file: ./docker/images/Dockerfile.prod 
+          push: false # Solo comprueba que compila, no la sube a ningún lado
+          tags: dinosaurhub:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

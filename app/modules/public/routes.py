@@ -2,7 +2,7 @@ import logging
 
 from flask import render_template
 from app.modules.dataset.services import DataSetService
-from app.modules.featuremodel.services import FeatureModelService
+from app.modules.fossils.services import FossilsService
 from app.modules.public import public_bp
 
 from flask import redirect, url_for, request
@@ -18,35 +18,38 @@ logger = logging.getLogger(__name__)
 
 @public_bp.route("/")
 def index():
-    """
-    Ruta principal (la que ya tenías).
-    """
     logger.info("Access index")
     dataset_service = DataSetService()
-    feature_model_service = FeatureModelService()
+    fossils_service = FossilsService()
 
 
     datasets_counter = dataset_service.count_synchronized_datasets()
-    feature_models_counter = feature_model_service.count_feature_models()
-
+    fossils_files_counter = fossils_service.count_fossils_files()
 
     total_dataset_downloads = dataset_service.total_dataset_downloads()
-    total_feature_model_downloads = feature_model_service.total_feature_model_downloads()
+    total_fossils_file_downloads = fossils_service.total_fossils_file_downloads()
 
     total_dataset_views = dataset_service.total_dataset_views()
-    total_feature_model_views = feature_model_service.total_feature_model_views()
+    total_fossils_file_views = fossils_service.total_fossils_file_views()
+
+    trending_list = dataset_service.get_trending(metric="downloads", period="week", limit=5)
 
     return render_template(
         "public/index.html",
         datasets=dataset_service.latest_synchronized(),
         datasets_counter=datasets_counter,
-        feature_models_counter=feature_models_counter,
+        fossils_files_counter=fossils_files_counter,
         total_dataset_downloads=total_dataset_downloads,
-        total_feature_model_downloads=total_feature_model_downloads,
+        total_fossils_file_downloads=total_fossils_file_downloads,
         total_dataset_views=total_dataset_views,
-        total_feature_model_views=total_feature_model_views,
+        total_fossils_file_views=total_fossils_file_views,
+        trending_datasets=trending_list
     )
 
+
+@public_bp.route("/trending")
+def trending():
+    return render_template("public/trending.html")
 
 
 @public_bp.route("/user/<int:user_id>")

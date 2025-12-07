@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from flask_login import current_user
@@ -101,6 +101,36 @@ class DataSetRepository(BaseRepository):
         
     def filter_by(self, **kwargs):
         return self.model.query.filter_by(**kwargs)
+
+    def get_trending(self, metric: str, period: str, limit: int = 10):
+        metric_map = {
+            "downloads": (DSDownloadRecord, DSDownloadRecord.download_date),
+            "views": (DSViewRecord, DSViewRecord.view_date),
+        }
+        period_map = {"week": 7, "month": 30}
+
+        if metric not in metric_map:
+            raise ValueError("Invalid metric. Use 'downloads' or 'views'.")
+
+        if period not in period_map:
+            raise ValueError("Invalid period. Use 'week' or 'month'.")
+
+        record_model, date_column = metric_map[metric]
+        start_date = datetime.now(timezone.utc) - timedelta(days=period_map[period])
+
+        return (
+            self.session.query(
+                DataSet,
+                func.count(record_model.id).label("metric_total"),
+            )
+            .join(record_model, DataSet.id == record_model.dataset_id)
+            .join(DSMetaData, DataSet.ds_meta_data_id == DSMetaData.id)
+            .filter(DSMetaData.dataset_doi.isnot(None), date_column >= start_date)
+            .group_by(DataSet.id, DSMetaData.id)
+            .order_by(desc("metric_total"))
+            .limit(limit)
+            .all()
+        )
 
 class DOIMappingRepository(BaseRepository):
     def __init__(self):
