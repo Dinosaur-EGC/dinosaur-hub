@@ -137,3 +137,12 @@ class TestDatasetUploadChoices:
                 stream=True
             )
             service.repository.session.commit.assert_called_once()
+
+    def test_create_from_github_invalid_url(self, service, mock_user, mock_form):
+        """Testea que rechace URLs que no son de GitHub."""
+        mock_form.github_url.data = "https://gitlab.com/user/repo" # Dominio incorrecto
+
+        with pytest.raises(ValueError, match="Invalid GitHub URL"):
+            service.create_from_github(mock_form, mock_user)
+        
+        service.repository.session.rollback.assert_called()
