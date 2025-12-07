@@ -82,3 +82,12 @@ class TestDatasetUploadChoices:
             )
 
             service.repository.session.commit.assert_called_once()
+
+    def test_create_from_zip_invalid_file(self, service, mock_user, mock_form):
+        invalid_file = io.BytesIO(b"Not a zip file")
+        mock_form.zip_file.data = invalid_file
+
+        with pytest.raises(ValueError, match="not a valid ZIP"):
+            service.create_from_zip(mock_form, mock_user)
+    
+        service.repository.session.rollback.assert_called_once()
