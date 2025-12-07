@@ -187,3 +187,25 @@ class TestDatasetUploadChoices:
             service.create_from_github(mock_form, mock_user)
 
         service.repository.session.rollback.assert_called()
+
+    
+    '''
+    AMBOS
+    '''
+
+    def test_create_from_zip_no_csv_raises_error(self, service, mock_user, mock_form):
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr('leeme.txt', 'Este zip no sirve porque no tiene datos')
+        zip_buffer.seek(0)
+        
+        mock_form.zip_file.data = zip_buffer
+
+        service.create = MagicMock()
+        service.create.return_value = MagicMock(id=99)
+
+        with patch("app.modules.dataset.services.os.makedirs"):
+            with pytest.raises(ValueError, match="No se encontraron archivos CSV válidos en el repositorio."):
+                service.create_from_zip(mock_form, mock_user)
+
+        service.repository.session.rollback.assert_called_once()
