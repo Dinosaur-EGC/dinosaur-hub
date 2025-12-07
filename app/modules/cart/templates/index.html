@@ -1,0 +1,77 @@
+{% extends "base_template.html" %}
+
+{% block title %}My Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">My Custom Dataset Cart</h1>
+        
+        {% if cart_items %}
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Fossil Model Title</th>
+                                    <th>Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in cart_items %}
+                                <tr>
+                                    <td>
+                                        <i data-feather="file-text" class="text-secondary me-2"></i>
+                                        {{ file.name }}
+                                    </td>
+                                    <td>
+                                        {% if file.fossils_file and file.fossils_file.fossils_meta_data %}
+                                            <strong>{{ file.fossils_file.fossils_meta_data.title }}</strong>
+                                        {% else %}
+                                            <span class="text-muted">No title available</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ file.get_formatted_size() }}</td>
+                                    <td>
+                                        <form action="{{ url_for('cart.remove_from_cart', hubfile_id=file.id) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
+                                                <i data-feather="trash-2"></i> Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white py-3">
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url_for('cart.download_cart') }}" class="btn btn-primary btn-lg">
+                            <i data-feather="download"></i> Download Models
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i data-feather="shopping-cart" style="width: 64px; height: 64px; color: #ccc;"></i>
+                </div>
+                <h3>Your cart is empty</h3>
+                <p class="text-muted">Explore datasets and add files to create your custom download.</p>
+                <a href="/explore" class="btn btn-primary mt-3">Explore Datasets</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        feather.replace();
+    });
+</script>
+{% endblock %}
