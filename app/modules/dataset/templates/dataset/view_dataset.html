@@ -227,6 +227,12 @@
                             </div>
                             <div class="col-12 text-end" >
 
+                                <button onclick="addToCart('{{ file.id }}')" 
+                                        class="btn btn-success btn-sm" 
+                                        id="cart_button_{{ file.id }}"
+                                        style="border-radius: 5px; margin-right: 10px;">
+                                    <i data-feather="shopping-cart"></i> Add to Cart
+                                </button>
                                 <button onclick="viewFile('{{ file.id }}')" class="btn btn-outline-secondary btn-sm" style="border-radius: 5px;">
                                     <i data-feather="eye"></i> View
                                 </button>                        
@@ -412,6 +418,74 @@
         }
     }
     */
+
+    // ... Después de la función checkUVL(file_id)
+// ... y antes de la función copyToClipboard()
+
+    function addToCart(hubfileId) {
+        const button = document.getElementById(`cart_button_${hubfileId}`);
+        
+        // Estado de carga
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        fetch(`/cart/add/${hubfileId}`, { method: 'POST' })
+        .then(response => {
+            // Procesamos la respuesta JSON incluyendo el status
+            return response.json().then(data => ({ status: response.status, body: data }));
+        })
+        .then(({ status, body }) => {
+            if (status === 200) {
+                // 1. Éxito visual en el botón
+                button.className = 'btn btn-warning btn-sm';
+                button.innerHTML = '<i data-feather="check"></i> Added';
+                
+                // 2. ACTUALIZAR CONTADORES (AJAX)
+                if (body.cart_count !== undefined) {
+                    updateCartBadges(body.cart_count);
+                }
+                
+            } else if (status === 409) {
+                button.className = 'btn btn-warning btn-sm';
+                button.innerHTML = '<i data-feather="check"></i> Already Added';
+            } else {
+                button.className = 'btn btn-danger btn-sm';
+                button.innerHTML = '<i data-feather="x-circle"></i> Error';
+                console.error(`Error adding to cart: ${body.error || 'Unknown error'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Network Error:', error);
+            button.className = 'btn btn-danger btn-sm';
+            button.innerHTML = '<i data-feather="x-circle"></i> Error';
+        })
+        .finally(() => {
+            button.disabled = false;
+            // Recargar iconos de Feather
+            if (typeof feather !== 'undefined') {
+                feather.replace(); 
+            }
+        });
+    }
+
+    // Función auxiliar para actualizar los números en navbar y sidebar
+    function updateCartBadges(count) {
+        const badges = [
+            document.getElementById('cart_sidebar_badge'),
+            document.getElementById('cart_navbar_badge')
+        ];
+
+        badges.forEach(el => {
+            if (el) {
+                if (count > 0) {
+                    el.style.display = 'inline-block';
+                    el.textContent = count;
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+        });
+    }
     function copyToClipboard() {
         const textToCopy = rawCsvContent;
 

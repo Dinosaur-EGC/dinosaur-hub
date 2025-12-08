@@ -167,6 +167,19 @@ chico sundermann">
 
             <div class="navbar-collapse collapse">
                 <ul class="navbar-nav navbar-align">
+                    <li class="nav-item d-none d-lg-block">
+                        <a class="nav-link" href="{{ url_for('cart.index') }}" title="My Cart">
+                            <div class="position-relative">
+                                <i class="align-middle" data-feather="shopping-cart"></i>
+
+                                <span id="cart_navbar_badge" class="badge bg-danger rounded-pill ms-1"style="{{ 'display: none;' if cart_count == 0 else '' }}">
+                                    {{ cart_count if cart_count > 0 else '' }}
+                                </span>
+                            </div>
+                        </a>
+                    </li>
+
+
                     <li class="nav-item dropdown">
 
                         {% if current_user.is_anonymous %}
