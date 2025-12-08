@@ -48,3 +48,21 @@ def download_cart():
     except Exception as e:
         flash("An error occurred while generating the download.", "danger")
         return redirect(url_for('cart.index'))
+
+@cart_bp.route('/empty', methods=['POST'])
+@login_required
+def empty_cart():
+    cart_service = CartService()
+    result, status = cart_service.empty_cart(current_user.id)
+
+    if not request.is_json:
+        if status == 200:
+            flash(result.get("message"), "success")
+        else:
+            flash(result.get("error"), "danger")
+        return redirect(url_for('cart.index'))
+
+    if status == 200:
+        result['cart_count'] = 0
+
+    return jsonfy(result), status
