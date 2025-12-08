@@ -76,3 +76,10 @@ class CartService:
                     print(f"File {file_path} does not exist and will be skipped.")
 
         return zip_path, zip_filename
+
+    def empty_cart(self, user_id):
+        try:
+            self.cart_repository.delete_by_column("user_id", user_id)
+            return {"message": "Cart emptied successfully"}, 200
+        except Exception as e:
+            return {"error": f"Internal error: {e}"}, 500
