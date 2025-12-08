@@ -172,9 +172,9 @@ chico sundermann">
                             <div class="position-relative">
                                 <i class="align-middle" data-feather="shopping-cart"></i>
 
-                                {% if cart_count > 0 %}
-                                    <span class="badge bg-danger rounded-pill ms-1">{{ cart_count }}</span>
-                                {% endif %}
+                                <span id="cart_navbar_badge" class="badge bg-danger rounded-pill ms-1"style="{{ 'display: none;' if cart_count == 0 else '' }}">
+                                    {{ cart_count if cart_count > 0 else '' }}
+                                </span>
                             </div>
                         </a>
                     </li>
