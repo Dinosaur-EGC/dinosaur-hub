@@ -39,12 +39,12 @@ class CartService:
             return {"error": "Item not found in cart"}, 404
         
         try:
-            self.cart_repository.delete(existing, commit=True)
+            self.cart_repository.delete(existing.id)
+            
             return {"message": "Item removed successfully"}, 200
         except Exception as e:
             self.cart_repository.session.rollback() 
             return {"error": f"Internal error: {e}"}, 500
-
 
 
     def get_cart_items(self, user_id):
