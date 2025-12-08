@@ -15,9 +15,11 @@ def index():
 def add_to_cart(hubfile_id):
 
     cart_service = CartService()
-
-
     result, status = cart_service.add_item_to_cart(current_user.id, hubfile_id)
+
+    if status == 200:
+        items = cart_service.get_cart_items(current_user.id)
+        result['cart_count'] = len(items)
     return jsonify(result), status 
 
 @cart_bp.route('/remove/<int:hubfile_id>', methods=['POST'])
