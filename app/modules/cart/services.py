@@ -58,14 +58,14 @@ class CartService:
         cart_items = self.get_cart_items(user_id)
         
         if not cart_items:
-            return {"error": "Cart is empty"}, 404
+            raise ValueError("Cart is empty")
 
         temp_dir = tempfile.mkdtemp()
         zip_path = os.path.join(temp_dir, f"cart_user_{user_id}.zip")
 
         with zipfile.ZipFile(zip_path, 'w') as zipf:
             for hubfile in cart_items:
-                file_path = self.hubfile_service.get_path_by_hubfile(hubfile.id)
+                file_path = self.hubfile_service.get_path_by_hubfile(hubfile)
                 if os.path.exists(file_path):
                     zipf.write(file_path, arcname=hubfile.name)
                 else:
