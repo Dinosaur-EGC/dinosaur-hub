@@ -2,6 +2,7 @@ import os
 import tempfile
 import zipfile
 from flask import send_file
+from datetime import datetime
 
 from .repositories import ShoppingCartItemRepository
 from app.modules.hubfile.repositories import HubfileRepository
@@ -60,8 +61,11 @@ class CartService:
         if not cart_items:
             raise ValueError("Cart is empty")
 
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        zip_filename = f"dinosauhub_dataset_{timestamp}.zip"
+
         temp_dir = tempfile.mkdtemp()
-        zip_path = os.path.join(temp_dir, f"cart_user_{user_id}.zip")
+        zip_path = os.path.join(temp_dir, zip_filename)
 
         with zipfile.ZipFile(zip_path, 'w') as zipf:
             for hubfile in cart_items:
@@ -71,4 +75,4 @@ class CartService:
                 else:
                     print(f"File {file_path} does not exist and will be skipped.")
 
-        return zip_path
+        return zip_path, zip_filename
