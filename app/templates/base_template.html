@@ -169,8 +169,13 @@ chico sundermann">
                 <ul class="navbar-nav navbar-align">
                     <li class="nav-item d-none d-lg-block">
                         <a class="nav-link" href="{{ url_for('cart.index') }}" title="My Cart">
-                            <i class="align-middle" data-feather="shopping-cart"></i>
-                            
+                            <div class="position-relative">
+                                <i class="align-middle" data-feather="shopping-cart"></i>
+
+                                {% if cart_count > 0 %}
+                                    <span class="badge bg-danger rounded-pill ms-1">{{ cart_count }}</span>
+                                {% endif %}
+                            </div>
                         </a>
                     </li>
 
