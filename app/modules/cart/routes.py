@@ -40,8 +40,8 @@ def remove_from_cart(hubfile_id):
 def download_cart():
     cart_service = CartService()
     try:
-        zip_path = cart_service.generate_cart_zip(current_user.id)
-        return send_file(zip_path, as_attachment=True)
+        zip_path, zip_filename = cart_service.generate_cart_zip(current_user.id)
+        return send_file(zip_path, as_attachment=True, download_name=zip_filename)
     except ValueError as ve:
         flash("Your cart is empty.", "warning")
         return redirect(url_for('cart.index'))
