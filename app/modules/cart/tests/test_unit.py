@@ -1,6 +1,6 @@
 import pytest
 from app.modules.cart.services import CartService
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 @pytest.fixture
 def cart_service():
@@ -115,4 +115,50 @@ def test_get_cart_items_empty(cart_service):
     assert result == []
     cart_service.cart_repository.get_items_by_user.assert_called_once_with(1)
     cart_service.hubfile_repository.filter_by_ids.assert_called_once_with([])
+
+#TEST PARA GENERATE_CART_ZIP
+
+def test_generate_cart_zip_success(cart_service):
+    mock_cart_item = MagicMock()
+    mock_cart_item.hubfile_id = 1
+    cart_service.cart_repository.get_items_by_user.return_value = [mock_cart_item]
+
+    mock_hubfile = MagicMock()
+    mock_hubfile.name = "fossil_model.csv"
+    cart_service.hubfile_repository.filter_by_ids.return_value = [mock_hubfile]
+
+    cart_service.hubfile_service.get_path_by_hubfile.return_value = "/path/to/fossil_model.csv"
+
+    with patch("app.modules.cart.services.os") as mock_os, \
+         patch("app.modules.cart.services.tempfile") as mock_tempfile, \
+         patch("app.modules.cart.services.zipfile") as mock_zipfile, \
+         patch("app.modules.cart.services.datetime") as mock_datetime:
+
+        mock_tempfile.mkdtemp.return_value = "/tmp/fake_dir"
+        mock_os.path.join.return_value = "/tmp/fake_dir/dinosaurhub_dataset.zip"
+        mock_os.path.exists.return_value = True
+
+        mock_now = MagicMock()
+        mock_now.strftime.return_value = "2024-06-01_12-00"
+        mock_datetime.now.return_value = mock_now
+
+        mock_zip_instance = MagicMock()
+        mock_zipfile.ZipFile.return_value.__enter__.return_value = mock_zip_instance
+
+        zip_path, zip_filename = cart_service.generate_cart_zip(user_id=1)
+
+        assert zip_path == "/tmp/fake_dir/dinosaurhub_dataset.zip"
+        assert zip_filename == "dinosauhub_dataset_2024-06-01_12-00.zip"
+
+        mock_zip_instance.write.assert_called_with(
+            "/path/to/fossil_model.csv", arcname="fossil_model.csv"
+        )
+
+def test_generate_zip_empty_cart(cart_service):
+    cart_service.cart_repository.get_items_by_user.return_value = []
+
+    cart_service.hubfile_repository.filter_by_ids.return_value = []
+
+    with pytest.raises(ValueError, match="Cart is empty") :
+        cart_service.generate_cart_zip(user_id=1)
 
