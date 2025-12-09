@@ -162,3 +162,20 @@ def test_generate_zip_empty_cart(cart_service):
     with pytest.raises(ValueError, match="Cart is empty") :
         cart_service.generate_cart_zip(user_id=1)
 
+#TEST PARA EMPTY_CART
+
+def test_empty_cart_success(cart_service):
+    result, status = cart_service.empty_cart(user_id=1)
+
+    assert status == 200
+    assert result == {"message": "Cart emptied successfully"}
+
+    cart_service.cart_repository.delete_by_column.assert_called_once_with("user_id", 1)
+
+def test_empty_cart_database_error(cart_service):
+    cart_service.cart_repository.delete_by_column.side_effect = Exception("DB Error")
+
+    result, status = cart_service.empty_cart(user_id=1)
+
+    assert status == 500
+    assert "Internal error" in result["error"]
