@@ -54,4 +54,36 @@ def test_add_item_to_cart_database_error(cart_service):
     assert status == 500
     assert "Internal error" in result["error"]
 
-    cart_service.cart_repository.create.assert_called_once()
+    cart_service.cart_repository.session.rollback.assert_called_once()
+
+#TEST PARA REMOVE_ITEM_FROM_CART
+
+def test_remove_item_success(cart_service):
+    mock_item = MagicMock()
+    mock_item.id = 5
+    cart_service.cart_repository.get_item_by_user_and_hubfile.return_value = mock_item
+
+    result, status = cart_service.remove_item_from_cart(user_id=1, hubfile_id=101)
+
+    assert status == 200
+    cart_service.cart_repository.delete.assert_called_once_with(mock_item.id)
+
+def test_remove_item_not_found(cart_service):
+    cart_service.cart_repository.get_item_by_user_and_hubfile.return_value = None
+
+    result, status = cart_service.remove_item_from_cart(user_id=1, hubfile_id=101)
+
+    assert status == 404
+    assert result == {"error": "Item not found in cart"}
+
+    cart_service.cart_repository.delete.assert_not_called()
+
+def test_remove_item_database_error(cart_service):
+    cart_service.cart_repository.get_item_by_user_and_hubfile.return_value = MagicMock()
+    cart_service.cart_repository.delete.side_effect = Exception("DB Error")
+
+    result, status = cart_service.remove_item_from_cart(user_id=1, hubfile_id=101)
+
+    assert status == 500
+    assert "Internal error" in result["error"]
+    cart_service.cart_repository.session.rollback.assert_called_once()
