@@ -4,10 +4,21 @@ from app.modules.hubfile.models import Hubfile
 from app.modules.cart.models import ShoppingCartItem
 from app.modules.dataset.models import DataSet, DSMetaData, PublicationType
 from app.modules.fossils.models import FossilsFile
+from app.modules.cart.services import CartService
+from app.modules.auth.models import User
+
+EMAIL_TEST = "test@example.com"
 
 # Helper para hacer login (reutilizando el usuario creado en conftest.py)
 def login_user(test_client):
-    test_client.post("/login", data={"email": "test@example.com", "password": "test1234"}, follow_redirects=True)
+    user = User.query.filter_by(email=EMAIL_TEST).first()
+    if not user:
+        user = User(email=EMAIL_TEST, password="test1234")
+        db.session.add(user)
+        db.session.commit()
+    
+    test_client.post("/login", data={"email": EMAIL_TEST, "password": "test1234"}, follow_redirects=True)
+    return user
 
 @pytest.fixture
 def sample_hubfile(test_client):
@@ -88,9 +99,38 @@ def test_add_item_duplicate(test_client, sample_hubfile):
 
 def test_add_item_not_found(test_client):
 
+
     login_user(test_client)
 
     response = test_client.post(f"/cart/add/9999")  # ID que no existe
 
     assert response.status_code == 404
     assert response.json["error"] == "Hubfile not found"
+
+def test_remove_item_from_cart(test_client, sample_hubfile):
+    cart_service = CartService()
+    user = login_user(test_client)
+
+    items_before = cart_service.get_cart_items(user.id)
+    test_client.post(f"/cart/add/{sample_hubfile.id}")
+    items_after = cart_service.get_cart_items(user.id)
+    
+    response = test_client.post(f"/cart/remove/{sample_hubfile.id}", follow_redirects=True, json={})
+
+    assert response.status_code == 200
+    assert response.json["message"] == "Item removed successfully"
+    assert response.json['cart_count'] == len(items_before) == len(items_after) - 1 
+    
+def test_remove_item_not_found(test_client):
+    login_user(test_client)
+
+    response = test_client.post(f"/cart/remove/9999", follow_redirects=True, json={})
+
+    assert response.status_code == 404
+    assert response.json["error"] == "Item not found in cart"
+
+    
+
+
+    
+
