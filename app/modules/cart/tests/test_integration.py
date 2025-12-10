@@ -7,6 +7,8 @@ from app.modules.fossils.models import FossilsFile
 from app.modules.cart.services import CartService
 from app.modules.auth.models import User
 
+from unittest.mock import patch
+
 EMAIL_TEST = "test@example.com"
 
 # Helper para hacer login (reutilizando el usuario creado en conftest.py)
@@ -56,19 +58,6 @@ def test_cart_index_empty(test_client):
     # Verificamos que no explote y que cargue el template (buscando un texto clave)
     assert b"My Custom Dataset Cart" in response.data and b"Your cart is empty" in response.data
 
-def test_add_item_to_cart(test_client, sample_hubfile):
-    login_user(test_client)
-
-    response = test_client.post(f"/cart/add/{sample_hubfile.id}")
-
-    assert response.status_code == 200  
-    assert response.json["message"] == "Item added successfully"
-    assert response.json['cart_count'] == 1
-
-    item = ShoppingCartItem.query.filter_by(hubfile_id=sample_hubfile.id).first()
-    assert item is not None
-    assert item.user_id == 1
-
 def test_cart_index_displays_items(test_client, sample_hubfile):
     """Prueba que la página del carrito muestra los items añadidos."""
     login_user(test_client)
@@ -86,6 +75,22 @@ def test_cart_index_displays_items(test_client, sample_hubfile):
     assert b"Your cart is empty" not in response.data
     expected_action = f"/cart/remove/{sample_hubfile.id}".encode()
     assert expected_action in response.data
+
+def test_add_item_to_cart(test_client, sample_hubfile):
+    cart_service = CartService()
+    user = login_user(test_client)
+
+    items_before = cart_service.get_cart_items(user.id)
+    response = test_client.post(f"/cart/add/{sample_hubfile.id}")
+    items_after = cart_service.get_cart_items(user.id)
+
+    assert response.status_code == 200  
+    assert response.json["message"] == "Item added successfully"
+    assert response.json['cart_count'] == len(items_before) + 1 == len(items_after)
+
+    item = ShoppingCartItem.query.filter_by(hubfile_id=sample_hubfile.id).first()
+    assert item is not None
+    assert item.user_id == 1
 
 def test_add_item_duplicate(test_client, sample_hubfile):
 
@@ -129,7 +134,6 @@ def test_remove_item_not_found(test_client):
     assert response.status_code == 404
     assert response.json["error"] == "Item not found in cart"
 
-    
 def test_empty_cart(test_client, sample_hubfile):
     login_user(test_client)
     test_client.post(f"/cart/add/{sample_hubfile.id}")
@@ -151,5 +155,28 @@ def test_empty_cart_when_already_empty(test_client):
     assert response.json['cart_count'] == 0
     assert ShoppingCartItem.query.count() == 0
 
-    
+def test_download_empty_cart(test_client):
+    login_user(test_client)
 
+    response = test_client.get("/cart/download", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"Your cart is empty." in response.data
+
+def test_download_cart_success(test_client, sample_hubfile):
+    user = login_user(test_client)
+
+    test_client.post(f"/cart/add/{sample_hubfile.id}")
+
+    with patch("app.modules.cart.services.CartService.generate_cart_zip") as mock_generate:
+
+        mock_generate.return_value = ("/tmp/fake_dataset.zip", "dino_test.zip")
+
+        with patch("app.modules.cart.routes.send_file") as mock_send_file:
+            mock_send_file.return_value = "Contenido del ZIP simulado"
+
+            response = test_client.get("/cart/download")
+
+            assert response.status_code == 200
+            mock_generate.assert_called_once_with(user.id)
+            mock_send_file.assert_called_once_with("/tmp/fake_dataset.zip", as_attachment=True, download_name="dino_test.zip")
