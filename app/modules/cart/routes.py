@@ -65,4 +65,4 @@ def empty_cart():
     if status == 200:
         result['cart_count'] = 0
 
-    return jsonfy(result), status
+    return jsonify(result), status
