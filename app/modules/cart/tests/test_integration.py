@@ -45,6 +45,19 @@ def test_cart_index_empty(test_client):
     # Verificamos que no explote y que cargue el template (buscando un texto clave)
     assert b"My Custom Dataset Cart" in response.data and b"Your cart is empty" in response.data
 
+def test_add_item_to_cart(test_client, sample_hubfile):
+    login_user(test_client)
+
+    response = test_client.post(f"/cart/add/{sample_hubfile.id}")
+
+    assert response.status_code == 200  
+    assert response.json["message"] == "Item added successfully"
+    assert response.json['cart_count'] == 1
+
+    item = ShoppingCartItem.query.filter_by(hubfile_id=sample_hubfile.id).first()
+    assert item is not None
+    assert item.user_id == 1
+
 def test_cart_index_displays_items(test_client, sample_hubfile):
     """Prueba que la página del carrito muestra los items añadidos."""
     login_user(test_client)
@@ -62,3 +75,22 @@ def test_cart_index_displays_items(test_client, sample_hubfile):
     assert b"Your cart is empty" not in response.data
     expected_action = f"/cart/remove/{sample_hubfile.id}".encode()
     assert expected_action in response.data
+
+def test_add_item_duplicate(test_client, sample_hubfile):
+
+    login_user(test_client)
+
+    test_client.post(f"/cart/add/{sample_hubfile.id}")
+    response = test_client.post(f"/cart/add/{sample_hubfile.id}")
+
+    assert response.status_code == 409
+    assert response.json["message"] == "Item already in cart"
+
+def test_add_item_not_found(test_client):
+
+    login_user(test_client)
+
+    response = test_client.post(f"/cart/add/9999")  # ID que no existe
+
+    assert response.status_code == 404
+    assert response.json["error"] == "Hubfile not found"
