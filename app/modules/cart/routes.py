@@ -33,6 +33,8 @@ def remove_from_cart(hubfile_id):
         else:
             flash(result.get("error"), "danger")
         return redirect(url_for('cart.index'))
+    items = cart_service.get_cart_items(current_user.id)
+    result['cart_count'] = len(items)
     return jsonify(result), status
 
 @cart_bp.route('/download', methods=['GET'])
