@@ -155,8 +155,22 @@ def test_empty_cart_when_already_empty(test_client):
     assert response.json['cart_count'] == 0
     assert ShoppingCartItem.query.count() == 0
 
+def test_empty_cart_database_error(test_client, sample_hubfile):
+    login_user(test_client)
+    test_client.post(f"/cart/add/{sample_hubfile.id}")
+
+    with patch("app.modules.cart.repositories.ShoppingCartItemRepository.delete_by_column") as mock_delete:
+        mock_delete.side_effect = Exception("Database connection lost")
+
+        response = test_client.post("/cart/empty", follow_redirects=True, json={})
+
+        assert response.status_code == 500
+        assert "Internal error" in response.json["error"]
+        assert "Database connection lost"  in response.json["error"]  
+
 def test_download_empty_cart(test_client):
     login_user(test_client)
+    test_client.post("/cart/empty", follow_redirects=True, json={})
 
     response = test_client.get("/cart/download", follow_redirects=True)
 
