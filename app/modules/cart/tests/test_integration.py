@@ -120,7 +120,7 @@ def test_remove_item_from_cart(test_client, sample_hubfile):
     assert response.status_code == 200
     assert response.json["message"] == "Item removed successfully"
     assert response.json['cart_count'] == len(items_before) == len(items_after) - 1 
-    
+
 def test_remove_item_not_found(test_client):
     login_user(test_client)
 
@@ -130,7 +130,26 @@ def test_remove_item_not_found(test_client):
     assert response.json["error"] == "Item not found in cart"
 
     
+def test_empty_cart(test_client, sample_hubfile):
+    login_user(test_client)
+    test_client.post(f"/cart/add/{sample_hubfile.id}")
 
+    response = test_client.post("/cart/empty", follow_redirects=True, json={})
+
+    assert response.status_code == 200
+    assert response.json["message"] == "Cart emptied successfully"
+    assert response.json['cart_count'] == 0
+    assert ShoppingCartItem.query.count() == 0
+
+def test_empty_cart_when_already_empty(test_client):
+    login_user(test_client)
+
+    response = test_client.post("/cart/empty", follow_redirects=True, json={})
+
+    assert response.status_code == 200
+    assert response.json["message"] == "Cart emptied successfully"
+    assert response.json['cart_count'] == 0
+    assert ShoppingCartItem.query.count() == 0
 
     
 
