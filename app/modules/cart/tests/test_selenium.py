@@ -138,7 +138,28 @@ def test_cart_features():
 
     print("El número de archivos en el carrito es correcto.")
 
-    
+    #4: BORRAR UN ITEM
+    print("Paso 4: Borrar un item del carrito")
+    if len(remove_buttons) > 0:
+      remove_buttons[0].click()
+      WebDriverWait(driver, 5).until(
+        EC.text_to_be_present_in_element((By.TAG_NAME, "body"), "Item removed successfully")
+      )
+      print("Item eliminado correctamente.")
+
+    #5: DESCARGAR CARRITO
+    print("Paso 5: Descargar carrito")
+    if "Your cart is empty" not in driver.page_source:
+      driver.find_element(By.PARTIAL_LINK_TEXT, "Download Models").click()
+      time.sleep(3)  # Esperar a que inicie la descarga
+      assert "Internal Server Error" not in driver.page_source, "Error al descargar el carrito"
+      print("Descarga del carrito iniciada correctamente.")
+
+    #6: VACIAR CARRITO (Limpieza final)
+    print("Paso 6: Vaciar carrito")
+    clean_cart(driver, host)
+
+    print("TEST SELENIUM COMPLETO CON ÉXITO.")
     
 
 
