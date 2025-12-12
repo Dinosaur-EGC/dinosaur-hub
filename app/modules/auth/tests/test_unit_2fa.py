@@ -53,3 +53,22 @@ def test_login_redirects_to_2fa(test_client, user_with_2fa):
     # Verificar que la sesión tiene el ID temporal
     with test_client.session_transaction() as sess:
         assert sess['2fa_user_id'] == user_with_2fa.id
+
+def test_verify_2fa_success(test_client, user_with_2fa):
+    """Prueba el flujo completo de verificación exitosa"""
+    # 1. Pre-login para establecer sesión
+    test_client.post(url_for('auth.login'), data={
+        'email': user_with_2fa.email,
+        'password': 'password123'
+    })
+
+    # 2. Generar token válido
+    totp = pyotp.TOTP(user_with_2fa.totp_secret)
+    token = totp.now()
+
+    # 3. Enviar token
+    response = test_client.post(url_for('auth.verify_2fa'), data={
+        'token': token
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
