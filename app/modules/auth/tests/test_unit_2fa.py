@@ -72,3 +72,18 @@ def test_verify_2fa_success(test_client, user_with_2fa):
     }, follow_redirects=True)
 
     assert response.status_code == 200
+
+def test_verify_2fa_failure(test_client, user_with_2fa):
+    """Prueba que un token inválido no permite el acceso"""
+    with test_client.session_transaction() as sess:
+        sess['2fa_user_id'] = user_with_2fa.id
+        sess['2fa_remember'] = False
+
+    # 2. Hacemos directamente el POST a la verificación 2FA
+    response = test_client.post(url_for('auth.verify_2fa'), data={
+        'token': '000000' # Token claramente inválido
+    }, follow_redirects=True)
+
+    # 3. Comprobamos que seguimos en la misma página y sale el error
+    assert response.status_code == 200
+    assert b"inv\xc3\xa1lido" in response.data or b"Invalid" in response.data

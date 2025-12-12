@@ -9,6 +9,7 @@ def test_app():
     """Create and configure a new app instance for each test session."""
     test_app = create_app("testing")
 
+    test_app.config['WTF_CSRF_ENABLED'] = False
     test_app.config['SERVER_NAME'] = 'localhost'
     test_app.config['APPLICATION_ROOT'] = '/' 
     test_app.config['PREFERRED_URL_SCHEME'] = 'http'
