@@ -38,3 +38,18 @@ def test_user_totp_methods(user_with_2fa):
     valid_token = totp.now()
     assert user_with_2fa.verify_totp(valid_token) is True
     assert user_with_2fa.verify_totp("000000") is False
+
+def test_login_redirects_to_2fa(test_client, user_with_2fa):
+    """Verifica que al hacer login con un usuario 2FA, redirige al formulario de verificación"""
+    response = test_client.post(url_for('auth.login'), data={
+        'email': user_with_2fa.email,
+        'password': 'password123'
+    })
+    
+    # Debe redirigir, no hacer login directo (código 302)
+    assert response.status_code == 302
+    assert url_for('auth.verify_2fa') in response.location
+    
+    # Verificar que la sesión tiene el ID temporal
+    with test_client.session_transaction() as sess:
+        assert sess['2fa_user_id'] == user_with_2fa.id
