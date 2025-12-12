@@ -87,3 +87,52 @@ def test_verify_2fa_failure(test_client, user_with_2fa):
     # 3. Comprobamos que seguimos en la misma página y sale el error
     assert response.status_code == 200
     assert b"inv\xc3\xa1lido" in response.data or b"Invalid" in response.data
+
+def test_enable_2fa_flow(test_client):
+    """Prueba la activación del 2FA desde el perfil"""
+    # 1. Crear y loguear usuario SIN 2FA
+    user = User(email="1no2fa@example.com", password="password123")
+    db.session.add(user)
+    db.session.commit()
+
+    # Ensure no other user is authenticated from previous tests
+    test_client.get(url_for('auth.logout'), follow_redirects=True)
+
+    test_client.post(url_for('auth.login'), data={
+        'email': '1no2fa@example.com',
+        'password': 'password123'
+    })
+
+    # 2. GET a la página de activar
+    response = test_client.get(url_for('profile.enable_2fa'))
+    assert response.status_code == 200
+    
+    # Extraer el secreto de la sesión (simulado) o del contexto
+    secret = None
+    with test_client.session_transaction() as sess:
+        secret = sess.get('totp_secret_pending')
+    
+    assert secret is not None
+
+    # 3. POST para confirmar con token válido
+    totp = pyotp.TOTP(secret)
+    token = totp.now()
+    
+    # POST to the profile enable endpoint (this route uses the pending secret in session)
+    response = test_client.post(url_for('profile.enable_2fa'), data={
+        'verification_token': token
+    }, follow_redirects=True)
+    
+    assert response.status_code == 200
+    # Verificar que el usuario ahora tiene 2FA activado
+    # Force SQLAlchemy to reload state from the DB (avoid identity map cache)
+    db.session.expire_all()
+    user_in_db = User.query.get(user.id)
+    # Ensure we loaded a fresh instance from the DB (not the same Python object)
+    assert user_in_db.totp_secret is not None
+    assert user_in_db.totp_secret == secret
+    assert user_in_db.verify_totp(token) is True
+    # Cleanup
+    db.session.delete(user_in_db)
+    db.session.commit()
+    
