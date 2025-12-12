@@ -5,6 +5,8 @@ services:
       - ../.env
     expose:
       - "5000"
+    ports:
+      - "5000:5000"
     depends_on:
       - db
       - selenium-hub
@@ -35,7 +37,7 @@ services:
 
   nginx:
     container_name: nginx_web_server_container
-    image: nginx:1.29.1
+    image: nginx:latest
     volumes:
       - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf
       - ./nginx/html:/usr/share/nginx/html
