@@ -23,7 +23,7 @@ jobs:
         id: lychee
         with:
           # --max-concurrency 1: Clave para evitar el error 503
-          args: --verbose --no-progress --max-concurrency 1 --retry 3 './wiki_files/**/*.md'
+          args: --verbose --no-progress --max-concurrency 1 --max-retries 3 './wiki_files/**/*.md'
           format: markdown
           output: ./lychee/out.md
           fail: false
