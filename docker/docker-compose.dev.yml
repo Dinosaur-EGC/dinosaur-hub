@@ -3,6 +3,8 @@ services:
     container_name: web_app_container
     env_file:
       - ../.env
+    environment:
+      - MARIADB_HOSTNAME=db
     expose:
       - "5000"
     ports:
