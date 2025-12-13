@@ -1,14 +1,17 @@
 name: Wiki Link Checker
 
 on:
-  gollum: # Se activa al editar una página de la Wiki
+  gollum:       # Se activa al editar la Wiki
   schedule:
     - cron: '0 9 * * 1' # Lunes a las 9:00 AM
-  workflow_dispatch: # Botón manual
+  workflow_dispatch: # Botón manual para probarlo tú cuando quieras
 
 jobs:
   check-wiki-links:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Necesario para crear la issue
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,10 +20,23 @@ jobs:
 
       - name: Link Checker
         uses: lycheeverse/lychee-action@v1.9.0
+        id: lychee
         with:
-          # Escanea todos los Markdown de la wiki
-          args: --verbose --no-progress './wiki_files/**/*.md'
-          # Si encuentra enlaces rotos, el pipeline falla y te avisa
-          fail: true
+          # Configuración final:
+          # - max-concurrency 1: Para que GitHub no nos bloquee (Error 503)
+          # - max-retries 3: Para ser resiliente
+          # - Solo escanea archivos .md
+          args: --verbose --no-progress --max-concurrency 1 --max-retries 3 './wiki_files/**/*.md'
+          format: markdown
+          output: ./lychee/out.md
+          fail: false # No fallamos el pipeline para poder crear la issue después
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Issue From File
+        if: steps.lychee.outputs.exit_code != 0 # SOLO crea issue si hay errores
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: Link Checker Report
+          content-filepath: ./lychee/out.md
+          labels: report, automated issue
