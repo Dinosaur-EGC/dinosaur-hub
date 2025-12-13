@@ -1,10 +1,10 @@
 name: Wiki Link Checker
 
 on:
-  push:
-    branches:
-      - 'ci/mejora-ci-wiki'
-  workflow_dispatch:
+  gollum:       # Se activa al editar la Wiki
+  schedule:
+    - cron: '0 9 * * 1' # Lunes a las 9:00 AM
+  workflow_dispatch: # Botón manual para probarlo tú cuando quieras
 
 jobs:
   check-wiki-links:
@@ -22,16 +22,19 @@ jobs:
         uses: lycheeverse/lychee-action@v1.9.0
         id: lychee
         with:
-          # --max-concurrency 1: Clave para evitar el error 503
+          # Configuración final:
+          # - max-concurrency 1: Para que GitHub no nos bloquee (Error 503)
+          # - max-retries 3: Para ser resiliente
+          # - Solo escanea archivos .md
           args: --verbose --no-progress --max-concurrency 1 --max-retries 3 './wiki_files/**/*.md'
           format: markdown
           output: ./lychee/out.md
-          fail: false
+          fail: false # No fallamos el pipeline para poder crear la issue después
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # <--- ¡AQUÍ ESTÁ! IMPORTANTE MANTENERLO
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Issue From File
-        if: steps.lychee.outputs.exit_code != 0
+        if: steps.lychee.outputs.exit_code != 0 # SOLO crea issue si hay errores
         uses: peter-evans/create-issue-from-file@v5
         with:
           title: Link Checker Report
