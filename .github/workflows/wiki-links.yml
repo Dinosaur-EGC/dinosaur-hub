@@ -9,6 +9,9 @@ on:
 jobs:
   check-wiki-links:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,7 +23,18 @@ jobs:
         with:
           # Escanea todos los Markdown de la wiki
           args: --verbose --no-progress './wiki_files/**/*.md'
+          format: markdown
+          output: ./lychee/out.md
           # Si encuentra enlaces rotos, el pipeline falla y te avisa
-          fail: true
+          fail: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Issue From File
+          if: steps.lychee.outputs.exit-code != 0
+          uses: peter-evans/create-issue-from-file@v5
+          with:
+            title: Link Checker Report 
+            content-filepath: ./lychee/out.md
+            labels: report, automated issue
+        
