@@ -275,7 +275,7 @@ def download_dataset(dataset_id):
     return resp
 
 
-@dataset_bp.route("/doi/<path:doi>", methods=["GET"])
+@dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
 
     # Check if the DOI is an old DOI
