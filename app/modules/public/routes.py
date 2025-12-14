@@ -1,4 +1,5 @@
 import logging
+import os
 
 from flask import render_template
 from app.modules.dataset.services import DataSetService
@@ -93,3 +94,11 @@ def view_user_profile(user_id):
         pagination=user_datasets_pagination,
         total_datasets=total_datasets_count
     )
+@public_bp.route("/version")
+def show_version():
+    try:
+        with open("/app/version.txt", "r") as f:
+            content = f.read()
+        return content.replace("\n", "<br>")
+    except FileNotFoundError:
+        return "Version file not found (Local development?)"
