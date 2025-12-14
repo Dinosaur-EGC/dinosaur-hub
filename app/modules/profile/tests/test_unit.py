@@ -84,3 +84,14 @@ def test_get_user_profile_not_found(profile_service):
         # Aserciones
         assert result is None
         MockUser.query.get.assert_called_once_with(999)
+        
+        
+def test_user_profile_repr():
+    """Prueba la representación string del modelo UserProfile."""
+    from app.modules.profile.models import UserProfile
+    
+    profile = UserProfile(user_id=1, name="Dino", surname="Saurio")
+    repr_str = str(profile) 
+    
+    assert isinstance(repr_str, str)
+   
