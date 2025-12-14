@@ -39,22 +39,6 @@ class ProfileBehavior(TaskSet):
 
         self.client.post("/profile/edit", data=profile_data)
 
-    # --- Tareas añadidas para perfiles ajenos ---
-    @task(4)
-    def view_other_user_profile(self):
-        # Simular ver perfil de otro usuario (asumir ID aleatorio)
-        user_id = fake.random_int(min=1, max=100)  # ID ficticio
-        self.client.get(f"/profile/{user_id}")
-
-    @task(2)
-    def view_other_user_profile_with_datasets(self):
-        # Simular perfil con datasets (asumir ID conocido con datasets)
-        self.client.get("/profile/2")  # Asumir usuario con datasets
-
-    @task(1)
-    def view_nonexistent_user_profile(self):
-        # Simular perfil inexistente para probar errores
-        self.client.get("/profile/999")
 
 class ProfileLoadTest(HttpUser):
     tasks = [ProfileBehavior]
