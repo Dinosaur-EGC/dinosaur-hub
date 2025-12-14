@@ -53,7 +53,7 @@ class FakenodoService(BaseService):
                 for author in ds_meta_data.authors
             ],
             "keywords": (
-                ["uvlhub"] if not ds_meta_data.tags else ds_meta_data.tags.split(", ") + ["uvlhub"]
+                ["dinosaurhub"] if not ds_meta_data.tags else ds_meta_data.tags.split(", ") + ["dinosaurhub"]
             ),
             "access_right": "open",
             "license": "CC-BY-4.0",

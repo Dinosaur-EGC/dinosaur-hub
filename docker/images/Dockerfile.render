@@ -26,6 +26,20 @@ COPY rosemary/ ./rosemary
 # Copy requirements.txt into the working directory /app
 COPY requirements.txt .
 
+# --- CUSTOM CHANGE: Copy configuration and extract version ---
+COPY pyproject.toml .
+
+# Extract version from pyproject.toml and save it to version.txt with build date
+# This makes the build traceable to a specific semantic version
+RUN APP_VERSION=$(grep -m 1 'version = "' pyproject.toml | cut -d '"' -f 2) && \
+    echo "Dinosaur Hub Release: $APP_VERSION" > /app/version.txt && \
+    echo "Build Date: $(date)" >> /app/version.txt
+
+# Add metadata label for container inspection
+LABEL version="auto-generated-from-pyproject"
+# -------------------------------------------------------------
+
+    
 # Removes cache at the build stage
 RUN find . -type d -name "__pycache__" -exec rm -r {} + && \
     find . -type f -name "*.pyc" -exec rm -f {} +

@@ -1,38 +1,97 @@
 import pytest
+from unittest.mock import MagicMock, patch
+from app.modules.profile.services import UserProfileService
 
-from app import db
-from app.modules.auth.models import User
-from app.modules.conftest import login, logout
-from app.modules.profile.models import UserProfile
+@pytest.fixture
+def profile_service():
+    # Instanciamos el servicio
+    service = UserProfileService()
+    # Mockeamos el repositorio (aunque BaseService lo usa, es buena práctica tenerlo mockeado)
+    service.repository = MagicMock()
+    return service
 
+# TEST PARA UPDATE_PROFILE
 
-@pytest.fixture(scope="module")
-def test_client(test_client):
-    """
-    Extends the test_client fixture to add additional specific data for module testing.
-    for module testing (por example, new users)
-    """
-    with test_client.application.app_context():
-        user_test = User(email="user@example.com", password="test1234")
-        db.session.add(user_test)
-        db.session.commit()
+def test_update_profile_success(profile_service):
+    # Mock del formulario
+    mock_form = MagicMock()
+    mock_form.validate.return_value = True
+    mock_form.data = {"bio": "New bio", "name": "New Name"}
+    
+    # Mockeamos el método 'update' que viene heredado de BaseService
+    # para aislar la prueba y verificar solo la lógica de update_profile
+    profile_service.update = MagicMock(return_value="updated_instance")
 
-        profile = UserProfile(user_id=user_test.id, name="Name", surname="Surname")
-        db.session.add(profile)
-        db.session.commit()
+    # Ejecución
+    instance, errors = profile_service.update_profile(user_profile_id=1, form=mock_form)
 
-    yield test_client
+    # Aserciones
+    assert instance == "updated_instance"
+    assert errors is None
+    
+    # Verificamos que se llamó a validate
+    mock_form.validate.assert_called_once()
+    
+    # Verificamos que se llamó a self.update con los argumentos desempaquetados (**form.data)
+    profile_service.update.assert_called_once_with(1, bio="New bio", name="New Name")
 
+def test_update_profile_validation_failure(profile_service):
+    # Mock del formulario que falla la validación
+    mock_form = MagicMock()
+    mock_form.validate.return_value = False
+    mock_form.errors = {"bio": ["Too long"]}
+    
+    # Mockeamos update
+    profile_service.update = MagicMock()
 
-def test_edit_profile_page_get(test_client):
-    """
-    Tests access to the profile editing page via a GET request.
-    """
-    login_response = login(test_client, "user@example.com", "test1234")
-    assert login_response.status_code == 200, "Login was unsuccessful."
+    # Ejecución
+    instance, errors = profile_service.update_profile(user_profile_id=1, form=mock_form)
 
-    response = test_client.get("/profile/edit")
-    assert response.status_code == 200, "The profile editing page could not be accessed."
-    assert b"Edit profile" in response.data, "The expected content is not present on the page"
+    # Aserciones
+    assert instance is None
+    assert errors == {"bio": ["Too long"]}
+    
+    # Verificamos que NO se llamó a update porque falló la validación
+    profile_service.update.assert_not_called()
 
-    logout(test_client)
+# TEST PARA GET_USER_PROFILE
+
+def test_get_user_profile_found(profile_service):
+    # CORRECCIÓN: Apuntamos al origen real del modelo User
+    with patch("app.modules.auth.models.User") as MockUser:
+        mock_user_instance = MagicMock()
+        mock_user_instance.profile = "User Profile Data"
+        
+        # Configuramos el mock de la query de SQLAlchemy
+        MockUser.query.get.return_value = mock_user_instance
+
+        # Ejecución
+        result = profile_service.get_user_profile(user_id=1)
+
+        # Aserciones
+        assert result == "User Profile Data"
+        MockUser.query.get.assert_called_once_with(1)
+
+def test_get_user_profile_not_found(profile_service):
+    # CORRECCIÓN: Apuntamos al origen real del modelo User
+    with patch("app.modules.auth.models.User") as MockUser:
+        # Configuramos que query.get devuelva None (no se encontró usuario)
+        MockUser.query.get.return_value = None
+
+        # Ejecución
+        result = profile_service.get_user_profile(user_id=999)
+
+        # Aserciones
+        assert result is None
+        MockUser.query.get.assert_called_once_with(999)
+        
+        
+def test_user_profile_repr():
+    """Prueba la representación string del modelo UserProfile."""
+    from app.modules.profile.models import UserProfile
+    
+    profile = UserProfile(user_id=1, name="Dino", surname="Saurio")
+    repr_str = str(profile) 
+    
+    assert isinstance(repr_str, str)
+   
