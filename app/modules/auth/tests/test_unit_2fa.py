@@ -1,0 +1,138 @@
+import pytest
+import pyotp
+from flask import session, url_for
+from app import db
+from app.modules.auth.models import User
+from app.modules.auth.services import AuthenticationService
+
+@pytest.fixture(scope='module')
+def test_client(test_client):
+    """Extiende el fixture del cliente para incluir el contexto de la app si es necesario"""
+    yield test_client
+
+@pytest.fixture(scope='module')
+def auth_service():
+    return AuthenticationService()
+
+@pytest.fixture(scope='function')
+def user_with_2fa(test_client):
+    """Crea un usuario temporal con 2FA activado para los tests"""
+    user = User(email="test2fa@example.com", password="password123")
+    user.totp_secret = pyotp.random_base32()
+    db.session.add(user)
+    db.session.commit()
+    yield user
+    # Cleanup
+    db.session.delete(user)
+    db.session.commit()
+
+def test_user_totp_methods(user_with_2fa):
+    """Prueba los métodos del modelo User relacionados con TOTP"""
+    # Test URI generation
+    uri = user_with_2fa.get_totp_uri()
+    assert "otpauth://totp/Dinosaur%20Hub:test2fa%40example.com" in uri
+    assert user_with_2fa.totp_secret in uri
+
+    # Test verificación de token
+    totp = pyotp.TOTP(user_with_2fa.totp_secret)
+    valid_token = totp.now()
+    assert user_with_2fa.verify_totp(valid_token) is True
+    assert user_with_2fa.verify_totp("000000") is False
+
+def test_login_redirects_to_2fa(test_client, user_with_2fa):
+    """Verifica que al hacer login con un usuario 2FA, redirige al formulario de verificación"""
+    response = test_client.post(url_for('auth.login'), data={
+        'email': user_with_2fa.email,
+        'password': 'password123'
+    })
+    
+    # Debe redirigir, no hacer login directo (código 302)
+    assert response.status_code == 302
+    assert url_for('auth.verify_2fa') in response.location
+    
+    # Verificar que la sesión tiene el ID temporal
+    with test_client.session_transaction() as sess:
+        assert sess['2fa_user_id'] == user_with_2fa.id
+
+def test_verify_2fa_success(test_client, user_with_2fa):
+    """Prueba el flujo completo de verificación exitosa"""
+    # 1. Pre-login para establecer sesión
+    test_client.post(url_for('auth.login'), data={
+        'email': user_with_2fa.email,
+        'password': 'password123'
+    })
+
+    # 2. Generar token válido
+    totp = pyotp.TOTP(user_with_2fa.totp_secret)
+    token = totp.now()
+
+    # 3. Enviar token
+    response = test_client.post(url_for('auth.verify_2fa'), data={
+        'token': token
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+
+def test_verify_2fa_failure(test_client, user_with_2fa):
+    """Prueba que un token inválido no permite el acceso"""
+    with test_client.session_transaction() as sess:
+        sess['2fa_user_id'] = user_with_2fa.id
+        sess['2fa_remember'] = False
+
+    # 2. Hacemos directamente el POST a la verificación 2FA
+    response = test_client.post(url_for('auth.verify_2fa'), data={
+        'token': '000000' # Token claramente inválido
+    }, follow_redirects=True)
+
+    # 3. Comprobamos que seguimos en la misma página y sale el error
+    assert response.status_code == 200
+    assert b"inv\xc3\xa1lido" in response.data or b"Invalid" in response.data
+
+def test_enable_2fa_flow(test_client):
+    """Prueba la activación del 2FA desde el perfil"""
+    # 1. Crear y loguear usuario SIN 2FA
+    user = User(email="1no2fa@example.com", password="password123")
+    db.session.add(user)
+    db.session.commit()
+
+    # Ensure no other user is authenticated from previous tests
+    test_client.get(url_for('auth.logout'), follow_redirects=True)
+
+    test_client.post(url_for('auth.login'), data={
+        'email': '1no2fa@example.com',
+        'password': 'password123'
+    })
+
+    # 2. GET a la página de activar
+    response = test_client.get(url_for('profile.enable_2fa'))
+    assert response.status_code == 200
+    
+    # Extraer el secreto de la sesión (simulado) o del contexto
+    secret = None
+    with test_client.session_transaction() as sess:
+        secret = sess.get('totp_secret_pending')
+    
+    assert secret is not None
+
+    # 3. POST para confirmar con token válido
+    totp = pyotp.TOTP(secret)
+    token = totp.now()
+    
+    # POST to the profile enable endpoint (this route uses the pending secret in session)
+    response = test_client.post(url_for('profile.enable_2fa'), data={
+        'verification_token': token
+    }, follow_redirects=True)
+    
+    assert response.status_code == 200
+    # Verificar que el usuario ahora tiene 2FA activado
+    # Force SQLAlchemy to reload state from the DB (avoid identity map cache)
+    db.session.expire_all()
+    user_in_db = User.query.get(user.id)
+    # Ensure we loaded a fresh instance from the DB (not the same Python object)
+    assert user_in_db.totp_secret is not None
+    assert user_in_db.totp_secret == secret
+    assert user_in_db.verify_totp(token) is True
+    # Cleanup
+    db.session.delete(user_in_db)
+    db.session.commit()
+    
