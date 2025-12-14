@@ -1,3 +1,9 @@
+## 1.6.0 (2025-12-14)
+
+### Feat
+
+- **routes**: 🎉 Add /version endpoint to display application version
+
 ## 1.5.0 (2025-12-14)
 
 ### Feat
