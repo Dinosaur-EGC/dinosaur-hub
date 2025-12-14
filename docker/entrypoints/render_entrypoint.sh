@@ -15,6 +15,17 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# --- CUSTOM CHANGE: Show Version on Startup ---
+# Displays the version injected during the Docker build process
+echo "=================================================="
+if [ -f /app/version.txt ]; then
+    cat /app/version.txt
+else
+    echo "Version info not found."
+fi
+echo "=================================================="
+# --------------------------------------------------------
+
 # Initialize migrations only if the migrations directory doesn't exist
 if [ ! -d "migrations/versions" ]; then
     # Initialize the migration repository
