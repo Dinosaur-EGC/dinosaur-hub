@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from app import db
 from app.modules.auth.models import User
 from app.modules.profile.models import UserProfile
@@ -130,5 +131,80 @@ def test_length_validations(test_client):
     # Busca mensaje de error de longitud (depende de cómo hayas definido el mensaje en WTForms)
     # Puede ser 'Field cannot be longer than' o 'Field must be between'
     assert b'longer than' in response.data or b'between' in response.data
+
+    logout(test_client)
+    
+    # --- TEST PARA PROFILE SUMMARY ---
+def test_my_profile_page(test_client):
+    """Prueba el acceso a la página de resumen del perfil."""
+    login(test_client, "user_profile_test@example.com", "test1234")
+
+    response = test_client.get("/profile/summary")
+    
+    assert response.status_code == 200
+    # Verificamos que carga partes clave de la plantilla
+    assert b"User profile" in response.data or b"Summary" in response.data
+
+    logout(test_client)
+
+# --- TESTS PARA 2FA (DOBLE FACTOR) ---
+
+def test_2fa_enable_page_get(test_client):
+    """Prueba la carga de la página para activar 2FA (GET)."""
+    login(test_client, "user_profile_test@example.com", "test1234")
+
+    response = test_client.get("/2fa/enable")
+    
+    assert response.status_code == 200
+    # Verifica que se genera el QR (busca la imagen en base64)
+    assert b"data:image/png;base64" in response.data
+
+    logout(test_client)
+
+def test_2fa_enable_submit_success(test_client):
+    """Prueba la activación exitosa de 2FA simulando un token válido."""
+    login(test_client, "user_profile_test@example.com", "test1234")
+
+    # Simulamos que tenemos un secreto pendiente en la sesión
+    with test_client.session_transaction() as sess:
+        sess['totp_secret_pending'] = 'JBSWY3DPEHPK3PXP'
+
+    # Mockeamos pyotp para que diga que el token '123456' es válido
+    with patch("pyotp.TOTP.verify", return_value=True):
+        response = test_client.post("/2fa/enable", data={
+            "verification_token": "123456"
+        }, follow_redirects=True)
+
+        assert response.status_code == 200
+        assert b"2FA activado correctamente" in response.data
+
+    logout(test_client)
+
+def test_2fa_enable_submit_invalid(test_client):
+    """Prueba el fallo al meter un token incorrecto."""
+    login(test_client, "user_profile_test@example.com", "test1234")
+
+    with test_client.session_transaction() as sess:
+        sess['totp_secret_pending'] = 'JBSWY3DPEHPK3PXP'
+
+    # No mockeamos pyotp, por lo que el token '000000' fallará
+    response = test_client.post("/2fa/enable", data={
+        "verification_token": "000000"
+    })
+
+    assert response.status_code == 200
+    # Debe mostrar el error en el formulario
+    assert b"C\xc3\xb3digo de verificaci\xc3\xb3n incorrecto" in response.data or b"incorrecto" in response.data
+
+    logout(test_client)
+
+def test_2fa_disable(test_client):
+    """Prueba la desactivación del 2FA."""
+    login(test_client, "user_profile_test@example.com", "test1234")
+
+    response = test_client.post("/2fa/disable", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"desactivada" in response.data
 
     logout(test_client)
