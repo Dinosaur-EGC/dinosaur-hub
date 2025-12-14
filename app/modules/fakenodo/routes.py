@@ -30,7 +30,7 @@ def upload_dataset():
 
 
 # Get dataset info
-@fakenodo_bp.route('/fakenodo/info/<dataset_id>', methods=['GET'])
+@fakenodo_bp.route('/fakenodo/info/<int:dataset_id>', methods=['GET'])
 def get_Dataset(dataset_id):
     dataset = datasets.get(dataset_id)
     if dataset:
