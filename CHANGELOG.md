@@ -1,3 +1,72 @@
+## 1.5.0 (2025-12-14)
+
+### Feat
+
+- **docker**: 🎉 Add version display on startup and extract version info
+- **tests**: 🎉 Add tests for user profile summary and 2FA functionality
+- **tests**: 🎉 Add Selenium tests for user profile features
+- **docker**: ✨ Add MARIADB_HOSTNAME environment variable for web service
+- **profile**: 🎉 Add load testing and unit tests for user profile features
+- **ci**: wiki-links mejorado
+- **ci**: añadir reporte de enlaces rotos con issues
+- Add Empty Cart
+- Contador de items actualizado
+- Contador del carrito
+- Acceso a carrito desde base y corrección de service de Hubfile
+- Vista del carrito
+- Migracion de cart
+- Routes de cart actualizado
+- Service de cart
+- Implementación de cart
+- carte de Get Started actualizado
+- favicon cambiado
+- ✨ Add database seeding command to entrypoint script
+- ✨ Add database seeding step during deployment
+
+### Fix
+
+- 🐛 Fix missing parentheses in `get_authenticated_user_profile` call
+- arreglo de la creacion de issues en wiki-links
+- parámetro arreglado de lychee
+- Texto actualizado en explore/index.html
+- Error en busqueda de datasets resuelto
+- Arreglo mensaje BluePrint
+- Download cart zip
+- Arreglo de remove_item_from_cart
+- refactorización del test_upload_dataset
+- quitar las estadísticas de featuremodel
+- aparecen los 5 datasets más descargados esa semana en el home
+- hacer que el sistema rechace zips vacíos
+- 🐛 Update base templates for consistency
+- 🐛 Update profile templates for consistency
+- 🐛 Update dataset templates for consistency
+- 🐛 Update http response templates for consistency
+- 🐛 Update http responses templates for consistency
+- 🐛 Update rosemary commands for consistency
+- 🐛 Update zenodo service for consistency
+- 🐛 Update fakenodo service for consistency
+- 🐛 Update dataset test_trending for consistency
+- 🐛 Update dataset service for consistency
+- 🐛 Update dataset models for consistency
+- 🐛 Update dataset service for consistency
+- 🐛 Update docker-compose.prod for consistency
+- 🐛 Update docker-compose.prod.webhook for consistency
+- 🐛 Update docker-compose.prod for consistency
+- 🐛 Update docker-compose.dev for consistency
+- 🐛 Update Docker image tag in CI workflow to match project name
+- 🐛 Update database configuration in CI workflow for consistency
+- 🐛 Update Docker image name in CI workflow to match project name
+- 🐛 Update project name in devcontainer configuration
+- 🐛 Update project description for accuracy
+- 🐛 Update database configuration in .env.vagrant.example for consistency
+- 🐛 Update database configuration in .env.local.example for consistency
+- 🐛 Update environment variables in .env.docker.production.example for consistency
+- 🐛 Update database configuration in .env.docker.example for consistency
+
+### Refactor
+
+- **tests**: 🔧 Simplify test client setup and clean up unused code
+
 ## 1.4.0 (2025-12-01)
 
 ### Feat
