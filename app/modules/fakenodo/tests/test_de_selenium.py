@@ -10,7 +10,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-class TestTest1():
+class TestTest2():
   def setup_method(self, method):
     self.driver = webdriver.Firefox()
     self.vars = {}
@@ -18,7 +18,7 @@ class TestTest1():
   def teardown_method(self, method):
     self.driver.quit()
   
-  def test_test1(self):
+  def test_test2(self):
     self.driver.get("http://127.0.0.1:5000/")
     self.driver.set_window_size(1214, 768)
     self.driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(7) .align-middle:nth-child(2)").click()
@@ -27,10 +27,9 @@ class TestTest1():
     self.driver.find_element(By.ID, "desc").click()
     self.driver.find_element(By.ID, "desc").send_keys("test")
     dropdown = self.driver.find_element(By.ID, "publication_type")
-    dropdown.find_element(By.XPATH, "//option[. = 'Book Section']").click()
-    self.driver.find_element(By.CSS_SELECTOR, "option:nth-child(4)").click()
-    self.driver.find_element(By.CSS_SELECTOR, ".container > .row:nth-child(3)").click()
+    dropdown.find_element(By.XPATH, "//option[. = 'Preprint']").click()
+    self.driver.find_element(By.CSS_SELECTOR, "option:nth-child(9)").click()
     self.driver.find_element(By.ID, "agreeCheckbox").click()
     self.driver.find_element(By.ID, "upload_button").click()
-    self.driver.find_element(By.LINK_TEXT, "Sample dataset 1").click()
+    self.driver.find_element(By.LINK_TEXT, "test").click()
   
